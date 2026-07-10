@@ -11,6 +11,7 @@ Load the `update-docs` skill after code changes and update affected docs when ne
 - `README.md` — project overview, workflows, setup
 - `docs/agents.md` — detailed agent reference
 - `docs/workflows.md` — detailed workflow reference
+- `docs/customization.md` — local profile and article storage
 - `docs/observability-memory-and-token-limiter.md` — observability, observational memory, token limiter
 
 ## Rules

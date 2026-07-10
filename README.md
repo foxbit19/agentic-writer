@@ -21,13 +21,22 @@ cp .env.example .env
 
 > This project uses OpenAI models by default. Feel free to swap in your preferred model for each agent in `src/mastra/agents/`.
 
+Customize the pipeline for yourself (gitignored, local only):
+
+```shell
+cp src/mastra/config/user-profile.local.example.ts src/mastra/config/user-profile.local.ts
+# edit name, mission, audience, voice, and goals
+```
+
+Approved articles are saved to `data/articles/` (also gitignored). The social media workflow shows them in an **article** dropdown after you run the article workflow.
+
 Start the development server:
 
 ```shell
 npm run dev
 ```
 
-Open [http://localhost:4111](http://localhost:4111) in Studio to run the workflows: start with `articleWorkflow` (notes in → MDX out), then pass the approved `mdx` to `socialMediaWorkflow` along with your target platforms.
+Open [http://localhost:4111](http://localhost:4111) in Studio: run `articleWorkflow` with your notes, then `socialMediaWorkflow` — pick a saved article from the dropdown and choose target platforms.
 
 You can start editing files inside the `src/mastra` directory. The development server will automatically reload whenever you make changes.
 
@@ -56,6 +65,8 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 See [docs/agents.md](docs/agents.md) for models, tools, full instructions, and personality details.
 
 See [docs/observability-memory-and-token-limiter.md](docs/observability-memory-and-token-limiter.md) for observability, observational memory, and input token limiting.
+
+See [docs/customization.md](docs/customization.md) for local profile and article storage.
 
 ---
 

@@ -24,8 +24,8 @@ flowchart TD
         approve -->|"rejected + notes"| write
     end
 
-    draftLoop -->|approved| finalize["Finalize article"]
-    finalize --> output["Output: mdx"]
+    finalize --> output["Save to data/articles/"]
+    output --> result["Output: mdx, articleId, title"]
 ```
 
 ### Steps
@@ -35,13 +35,13 @@ flowchart TD
 3. **Review** — the Editor reviews the draft against the notes and research.
 4. **Approve** — the workflow suspends for human approval; the human approves or rejects with additional notes.
 5. Steps 2–4 repeat, feeding the editor's review and the human's notes back to the Writer, until the human approves.
-6. The approved draft is returned as MDX text.
+6. The approved draft is saved to `data/articles/` and returned with its id.
 
 ### Input and output
 
 **Input:** `{ notes: string }`
 
-**Output:** `{ mdx: string }`
+**Output:** `{ mdx: string, articleId: string, title: string }`
 
 ### Agents
 
@@ -49,11 +49,11 @@ Researcher → Writer → Editor (looping until human approval).
 
 ## Social media workflow
 
-The `socialMediaWorkflow` takes the approved MDX from the article workflow and turns it into a human-approved social media campaign.
+The `socialMediaWorkflow` loads a saved article from `data/articles/` and turns it into a human-approved social media campaign.
 
 ```mermaid
 flowchart TD
-    input["Input: mdx + platforms"] --> prepare["Prepare article from MDX"]
+    input["Input: articleId + platforms"] --> prepare["Load saved article"]
     prepare --> strategy["Plan strategy (Strategist)"]
     strategy --> create["Create posts + image brief (Content Creator)"]
     create --> design["Design hero image (Graphic Designer)"]
@@ -67,18 +67,18 @@ flowchart TD
 
 ### Steps
 
-1. **Prepare** — parses the MDX title and content from the article workflow output.
+1. **Load** — reads the selected article from `data/articles/` (dropdown in Studio).
 2. **Strategize** — the Strategist decides a publication strategy: a hook/angle, call to action, and timing guidance for each requested platform.
-3. **Create** — the Content Creator writes a platform-native post for every requested platform and a creative brief (subject, mood, composition) for the hero image.
-4. **Design** — the Graphic Designer executes that brief into one on-brand hero image, applying the fixed brand visual style in `src/mastra/config/visual-style.ts` regardless of the brief's wording.
+3. **Create** — the Content Creator writes a platform-native post for every requested platform and an abstract, evocative creative brief for the hero image (no charts or text).
+4. **Design** — the Graphic Designer executes that brief into one on-brand abstract hero image.
 5. **Preview & approve** — the workflow suspends and shows the human the drafted posts and image; the human approves, optionally limiting to a subset of platforms, or declines and the workflow ends without publishing.
 6. **Publish** — on approval, the Content Creator connects to Buffer via MCP, matches each platform to a connected Buffer channel, and adds the post to that channel's queue (skipping platforms with no connected channel).
 
 ### Input and output
 
-**Input:** `{ mdx: string, platforms: string[], articleUrl?: string }` (see `SUPPORTED_PLATFORMS` in `src/mastra/config/platforms.ts`)
+**Input:** `{ articleId: string, platforms: string[], articleUrl?: string }` (see `SUPPORTED_PLATFORMS` in `src/mastra/config/platforms.ts`)
 
-- `mdx` — approved MDX from the article workflow
+- `articleId` — saved article from `data/articles/` (Studio dropdown; run the article workflow first)
 - `platforms` — target social platforms
 - `articleUrl` (optional) — published URL for post CTAs and Dub link shortening
 
@@ -92,7 +92,7 @@ flowchart TD
 
 ### Who this content is for
 
-Both the Strategist and Content Creator read a shared, configurable profile in `src/mastra/config/user-profile.ts` describing the user's role, mission, target audience, brand voice, and goals. Edit that file to reconfigure the pipeline for a different person or brand without touching the agents.
+All agents read your profile from `src/mastra/config/user-profile.local.ts` when present (see [customization.md](customization.md)).
 
 ### Agents
 
