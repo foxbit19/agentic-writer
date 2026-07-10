@@ -4,6 +4,7 @@ import { formatArticleStyle } from '../config/article-style';
 import { formatUserProfile } from '../config/user-profile';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
+import { EDITOR_MODEL } from '../config/models';
 
 export const editorAgent = new Agent({
   id: 'editor-agent',
@@ -26,7 +27,7 @@ ${formatArticleStyle()}
 - No mid-article Sources: blocks — all links belong in ## References at the end.
 
 Personality: ${agentPersonalities.editor}`,
-  model: 'openai/gpt-4.1',
+  model: EDITOR_MODEL,
   memory: agentMemory,
   inputProcessors: [inputTokenLimiter],
 });

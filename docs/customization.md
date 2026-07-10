@@ -50,7 +50,8 @@ data/articles/{article_id}/social/{campaign_id}/
   campaign.json       # runId, articleId, platforms, savedAt, imageUrl
   strategy.md         # strategist summary + per-platform angles
   image-brief.md      # content creator brief for the hero image
-  hero-image.json     # { url, altText } — PNG stays in generated-images/
+  hero-image.json     # { filename, url, altText }
+  hero-image.png      # saved alongside the campaign
   posts/
     linkedin.md
     twitter.md
@@ -62,6 +63,6 @@ Review posts on disk and publish manually. Buffer integration is dormant for now
 
 Edit `src/mastra/config/visual-style.ts` to change colors and illustration rules for hero images. Hero images are always abstract and text-free by policy (enforced in the tool, agents, and visual style config).
 
-## Generated images
+## Hero images
 
-AI hero images are stored under `src/mastra/public/generated-images/` (gitignored). Paths are resolved from the tool file location, not `process.cwd()`, so images are not written under nested `public/src/mastra/...` folders.
+AI hero images are saved as `hero-image.png` inside each campaign folder under `data/articles/{article_id}/social/{campaign_id}/`. The dev server serves them at `/articles/{articleId}/social/{campaignId}/hero-image.png` when `PUBLIC_BASE_URL` is set (defaults to `http://localhost:4111`).

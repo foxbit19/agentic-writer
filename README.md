@@ -19,7 +19,7 @@ cp .env.example .env
 # then edit .env and set OPENAI_API_KEY
 ```
 
-> This project uses OpenAI models by default. Feel free to swap in your preferred model for each agent in `src/mastra/agents/`.
+> Models are tiered for cost vs quality in `src/mastra/config/models.ts`. Override any agent via env for A/B testing — see [docs/agents.md#ab-testing-model-overrides](docs/agents.md#ab-testing-model-overrides).
 
 Customize the pipeline for yourself (gitignored, local only):
 
@@ -55,12 +55,12 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 
 | Agent | Model | Description |
 |-------|-------|-------------|
-| Researcher | `openai/gpt-5.1` | Extracts topics from author notes, searches the web, and produces a research brief for the Writer. |
+| Researcher | `openai/gpt-5-mini` | Extracts topics from author notes, searches the web, and produces a research brief for the Writer. |
 | Writer | `openai/gpt-5` | Drafts and revises the article as Markdown from the research brief, notes, and editorial feedback. |
-| Editor | `openai/gpt-4.1` | Reviews each draft against the notes and research brief, and recommends approval or another writing pass. |
-| Strategist | `openai/gpt-5.1` | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |
-| Content Creator | `openai/gpt-5` | Writes platform-native posts from the article and a creative brief for the hero image; optionally shortens a publish URL via Dub. |
-| Graphic Designer | `openai/gpt-4.1` | Executes the Content Creator's creative brief into one on-brand hero image. |
+| Editor | `openai/gpt-4.1-mini` | Reviews each draft against the notes and research brief, and recommends approval or another writing pass. |
+| Strategist | `openai/gpt-5-nano` | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |
+| Content Creator | `openai/gpt-5-mini` | Writes platform-native posts from the article and a creative brief for the hero image; optionally shortens a publish URL via Dub. |
+| Graphic Designer | `openai/gpt-4.1-nano` | Executes the Content Creator's creative brief into one on-brand hero image. |
 
 See [docs/agents.md](docs/agents.md) for models, tools, full instructions, and personality details.
 

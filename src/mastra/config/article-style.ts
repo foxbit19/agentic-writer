@@ -5,9 +5,9 @@ export const articleStyle = {
   title:
     'H1 in sentence case, not Title Case (e.g. "GPT-5.6 Sol: what actually matters for developers"). Keep proper nouns and acronyms as-is.',
   voice:
-    'Write in the first person as the author named in the profile — not as an AI assistant. Never use phrases like "In this article, we will…", "This post explores…", or detached third-person narration.',
+    'Write in the first person as the author named in the profile — not as an AI assistant. Never use phrases like "In this article, we will…", "This post explores…", or detached third-person narration. Avoid arrogant phrasing ("obviously", "you should already know", "the truth is", talking down to the reader). Prefer humble, evidence-led wording ("I found", "in my testing", "the docs say").',
   opening:
-    'Opening 1–2 paragraphs tease the rest of the article with a punchy, intriguing recap. Body sections stay evidence-based and direct — no filler hype.',
+    'Opening 1–2 paragraphs inform the reader: what the piece covers, why it matters, and the main thread—grounded in concrete detail from the research. Orient and engage without empty hype, clickbait, or a lecturing tone.',
   prose:
     'Do not use em dashes or " - " as clause separators in prose. Use periods, commas, or colons instead. Bullet lists (- item) in body sections are fine.',
   code:
@@ -27,7 +27,7 @@ export function formatArticleStyle(): string {
 
 export const articleMarkdownSkeleton = `# Sentence case title
 
-[Opening: intriguing 1–2 paragraph recap]
+[Opening: informative 1–2 paragraphs — what you learned and why it matters]
 
 ## Section …
 

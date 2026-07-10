@@ -3,6 +3,7 @@ import { agentPersonalities } from '../config/personalities';
 import { formatUserProfile } from '../config/user-profile';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
+import { CONTENT_CREATOR_MODEL } from '../config/models';
 
 export const contentCreatorAgent = new Agent({
   id: 'content-creator-agent',
@@ -19,7 +20,7 @@ Who this content is for:
 ${formatUserProfile()}
 
 Personality: ${agentPersonalities.contentCreator}`,
-  model: 'openai/gpt-5',
+  model: CONTENT_CREATOR_MODEL,
   memory: agentMemory,
   inputProcessors: [inputTokenLimiter],
 });

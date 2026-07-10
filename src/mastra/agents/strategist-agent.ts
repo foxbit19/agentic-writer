@@ -3,6 +3,7 @@ import { agentPersonalities } from '../config/personalities';
 import { formatUserProfile } from '../config/user-profile';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
+import { STRATEGIST_MODEL } from '../config/models';
 
 export const strategistAgent = new Agent({
   id: 'strategist-agent',
@@ -20,7 +21,7 @@ Who this content is for:
 ${formatUserProfile()}
 
 Personality: ${agentPersonalities.strategist}`,
-  model: 'openai/gpt-5.1',
+  model: STRATEGIST_MODEL,
   memory: agentMemory,
   inputProcessors: [inputTokenLimiter],
 });

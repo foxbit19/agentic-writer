@@ -44,7 +44,7 @@ Configured in `src/mastra/config/agent-memory.ts` and attached to every agent as
 
 | Setting | Value |
 |---------|-------|
-| Observer/reflector model | `openai/gpt-4.1-mini` |
+| Observer/reflector model | `openai/gpt-4.1-nano` |
 | Memory storage | LibSQL (`mastra.db`) via Mastra instance storage |
 | Thread scope | `{runId}:{agentId}` per workflow step (see `src/mastra/lib/workflow-memory.ts`) |
 | Resource ID | `agentic-writer` (or workflow `resourceId` when provided) |

@@ -4,6 +4,7 @@ import { articleMarkdownSkeleton, formatArticleStyle } from '../config/article-s
 import { formatUserProfile } from '../config/user-profile';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
+import { WRITER_MODEL } from '../config/models';
 
 export const writerAgent = new Agent({
   id: 'writer-agent',
@@ -30,7 +31,7 @@ Expected Markdown skeleton:
 ${articleMarkdownSkeleton}
 
 Personality: ${agentPersonalities.writer}`,
-  model: 'openai/gpt-5',
+  model: WRITER_MODEL,
   memory: agentMemory,
   inputProcessors: [inputTokenLimiter],
 });

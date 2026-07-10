@@ -1,7 +1,5 @@
 import { Memory } from '@mastra/memory';
-
-/** Observer/reflector model for background memory compression (uses OPENAI_API_KEY). */
-const OBSERVATIONAL_MEMORY_MODEL = 'openai/gpt-4.1-mini';
+import { OBSERVATIONAL_MEMORY_MODEL } from './models';
 
 export const agentMemory = new Memory({
   options: {

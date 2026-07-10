@@ -4,6 +4,7 @@ import { agentPersonalities } from '../config/personalities';
 import { formatUserProfile } from '../config/user-profile';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
+import { RESEARCHER_MODEL } from '../config/models';
 
 export const researcherAgent = new Agent({
   id: 'researcher-agent',
@@ -22,7 +23,7 @@ Your job:
 Always ground claims in what your searches actually returned. If a search turns up nothing useful, say so instead of inventing sources.
 
 Personality: ${agentPersonalities.researcher}`,
-  model: 'openai/gpt-5.1',
+  model: RESEARCHER_MODEL,
   tools: { webSearchTool },
   memory: agentMemory,
   inputProcessors: [inputTokenLimiter],

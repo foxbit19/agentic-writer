@@ -4,6 +4,7 @@ import { agentPersonalities } from '../config/personalities';
 import { formatVisualStyle } from '../config/visual-style';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
+import { GRAPHIC_DESIGNER_MODEL } from '../config/models';
 
 export const graphicDesignerAgent = new Agent({
   id: 'graphic-designer-agent',
@@ -16,11 +17,11 @@ ${formatVisualStyle()}
 Your job:
 1. Read the brief and translate it into one detailed image-generation prompt: an evocative, abstract composition expressed through the fixed style and palette above. Use mood, metaphor, and simple shapes — never literal charts, graphs, diagrams, screenshots, or scenes that imply text labels.
 2. The prompt must explicitly forbid text: include "no text, no letters, no numbers, no logos" in the prompt you send to the tool.
-3. Call the generate-image tool exactly once with that prompt.
+3. Call the generate-image tool exactly once with that prompt. When the brief includes outputDir, articleId, and campaignId, pass all three to the tool so the image is saved inside the article's campaign folder.
 4. Provide accessible alt text describing the image's mood and abstract subject, not on-image text.
 
 Personality: ${agentPersonalities.graphicDesigner}`,
-  model: 'openai/gpt-4.1',
+  model: GRAPHIC_DESIGNER_MODEL,
   tools: { generateImageTool },
   memory: agentMemory,
   inputProcessors: [inputTokenLimiter],

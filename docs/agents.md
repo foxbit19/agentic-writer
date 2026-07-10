@@ -4,20 +4,62 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 
 | Agent | Model | Workflow | Source |
 |-------|-------|----------|--------|
-| Researcher | `openai/gpt-5.1` | Article | `src/mastra/agents/researcher-agent.ts` |
+| Researcher | `openai/gpt-5-mini` | Article | `src/mastra/agents/researcher-agent.ts` |
 | Writer | `openai/gpt-5` | Article | `src/mastra/agents/writer-agent.ts` |
-| Editor | `openai/gpt-4.1` | Article | `src/mastra/agents/editor-agent.ts` |
-| Strategist | `openai/gpt-5.1` | Social media | `src/mastra/agents/strategist-agent.ts` |
-| Content Creator | `openai/gpt-5` | Social media | `src/mastra/agents/content-creator-agent.ts` |
-| Graphic Designer | `openai/gpt-4.1` | Social media | `src/mastra/agents/graphic-designer-agent.ts` |
+| Editor | `openai/gpt-4.1-mini` | Article | `src/mastra/agents/editor-agent.ts` |
+| Strategist | `openai/gpt-5-nano` | Social media | `src/mastra/agents/strategist-agent.ts` |
+| Content Creator | `openai/gpt-5-mini` | Social media | `src/mastra/agents/content-creator-agent.ts` |
+| Graphic Designer | `openai/gpt-4.1-nano` | Social media | `src/mastra/agents/graphic-designer-agent.ts` |
 
 All agents share observational memory (`src/mastra/config/agent-memory.ts`) and input token limiting (`src/mastra/config/token-limiter.ts`). Workflow steps scope memory per run via `src/mastra/lib/workflow-memory.ts`.
 
+Model strings are centralized in `src/mastra/config/models.ts`. See [A/B testing model overrides](#ab-testing-model-overrides) below to try alternatives without editing agent files.
+
 Article Markdown style rules live in `src/mastra/config/article-style.ts` and are injected into the Writer and Editor agents.
+
+## A/B testing model overrides
+
+Defaults live in [`src/mastra/config/models.ts`](../src/mastra/config/models.ts). Each constant reads an env var first, then falls back to the tiered default.
+
+Override any model without changing code — set the variable in `.env` or prefix the dev command:
+
+```shell
+# One-off: test Writer on mini for a single dev session
+WRITER_MODEL=openai/gpt-5-mini npm run dev
+
+# Persistent: add to .env, then restart dev
+WRITER_MODEL=openai/gpt-5-mini
+```
+
+| Env var | Agent / service | Default |
+|---------|-----------------|---------|
+| `RESEARCHER_MODEL` | Researcher | `openai/gpt-5-mini` |
+| `WRITER_MODEL` | Writer | `openai/gpt-5` |
+| `EDITOR_MODEL` | Editor | `openai/gpt-4.1-mini` |
+| `STRATEGIST_MODEL` | Strategist | `openai/gpt-5-nano` |
+| `CONTENT_CREATOR_MODEL` | Content Creator | `openai/gpt-5-mini` |
+| `GRAPHIC_DESIGNER_MODEL` | Graphic Designer | `openai/gpt-4.1-nano` |
+| `OBSERVATIONAL_MEMORY_MODEL` | Background memory compression | `openai/gpt-4.1-nano` |
+| `IMAGE_GENERATION_MODEL` | Hero image API (`generate-image` tool) | `gpt-image-1-mini` |
+
+**Suggested A/B workflow**
+
+1. Pick a saved article or fixed notes so inputs stay comparable.
+2. Run a workflow with the default models; note outputs under `data/articles/`.
+3. Set one override (e.g. `STRATEGIST_MODEL=openai/gpt-5-mini`), restart `npm run dev`, and re-run the same workflow.
+4. Compare quality in saved artifacts and token usage in Studio → **Traces** ([http://localhost:4111](http://localhost:4111)).
+
+For article downgrades, watch **Writer iteration count** — a weaker Editor or Researcher that misses issues can trigger extra draft loops and erase savings.
+
+Verify provider/model strings before overriding:
+
+```shell
+node .agents/skills/mastra/scripts/provider-registry.mjs --provider openai
+```
 
 ## Article workflow agents
 
-### Researcher (`openai/gpt-5.1`)
+### Researcher (`openai/gpt-5-mini`)
 
 Searches the web (via a DuckDuckGo-backed `web-search` tool) for the topics found in the notes and flags personal content worth preserving.
 
@@ -40,7 +82,7 @@ Writes and revises the article as Markdown from the research brief, the author's
 
 - H1 in **sentence case**, not Title Case
 - **First person** as the author (not AI-assistant voice)
-- **Opening 1–2 paragraphs** tease the rest with an intriguing recap; body stays evidence-based
+- **Opening 1–2 paragraphs** inform the reader what the piece covers and why it matters, grounded in research; no empty hype or lecturing tone
 - No em dashes or ` - ` clause separators in prose
 - Fenced code blocks for samples; inline backticks for short identifiers only
 - Single **`## References`** section at the end (no mid-article source dumps)
@@ -56,9 +98,9 @@ Writes and revises the article as Markdown from the research brief, the author's
 > - If this is a revision pass, treat the previous draft as a starting point and directly address every piece of feedback given - don't just tack on changes, integrate them.
 > - Output only the Markdown article content, with no commentary before or after it.
 >
-> Personality: *You write as the author in the first person — evidence of what you actually learned, not generic AI filler. Open with a bold, teasing recap; keep the body concrete, skeptical of hype, and easy to read out loud.*
+> Personality: *You write as a humble practitioner sharing what you actually learned. Inform first: lead with the useful takeaway or question the piece answers, grounded in specifics from the notes and research. Show evidence throughout—examples, sources, and limits of what you know—without sounding like an authority lecturing the reader. Stay curious and clear, skeptical of hype, never boastful or dismissive.*
 
-### Editor (`openai/gpt-4.1`)
+### Editor (`openai/gpt-4.1-mini`)
 
 Reviews each draft against the notes and research brief, enforces the article style rules, and recommends whether it's ready for the human author's approval.
 
@@ -77,20 +119,20 @@ Reviews each draft against the notes and research brief, enforces the article st
 
 The Strategist and Content Creator read a shared, configurable profile in `src/mastra/config/user-profile.ts` describing the user's role, mission, target audience, brand voice, and goals.
 
-### Strategist (`openai/gpt-5.1`)
+### Strategist (`openai/gpt-5-nano`)
 
 Decides the publication strategy per platform — angle, call to action, and timing — optimizing for reach and impact rather than generic advice.
 
 > Personality: *You are decisive and results-obsessed. You think in terms of hooks, attention, and distribution, not generic best practices. You'd rather give one sharp, specific, opinionated recommendation than a hedge-everything list of options, and you always tie your reasoning back to what will actually move the needle for this specific person's goals.*
 
-### Content Creator (`openai/gpt-5`)
+### Content Creator (`openai/gpt-5-mini`)
 
 Writes platform-native posts from the strategy and a creative brief for the hero image (handed off to the Graphic Designer rather than generating it itself); shortens an optional `articleUrl` via Dub's MCP server when `DUB_API_KEY` is set. The social workflow saves output to disk — Buffer scheduling is not used for now.
 
 > Personality: *You are a sharp, platform-native copywriter and visual thinker. You instinctively know that a LinkedIn post and a tweet are different species, and you never post the same generic text everywhere. You write like a person, not a press release, and you think concretely about what image would actually make someone stop scrolling.*
 
-### Graphic Designer (`openai/gpt-4.1`)
+### Graphic Designer (`openai/gpt-4.1-nano`)
 
-Executes the Content Creator's creative brief into one hero image (via the `generate-image` tool backed by `gpt-image-1`), strictly applying the fixed brand visual style in `src/mastra/config/visual-style.ts` — a blue-violet primary (`rgb(69 94 232 / 1)`) and its tints/shades on a near-black background (`rgb(3 7 18 / 1)`), flat 2D, minimal gradients — rather than deciding the concept itself.
+Executes the Content Creator's creative brief into one hero image (via the `generate-image` tool backed by `gpt-image-1-mini`), strictly applying the fixed brand visual style in `src/mastra/config/visual-style.ts` — a blue-violet primary (`rgb(69 94 232 / 1)`) and its tints/shades on a near-black background (`rgb(3 7 18 / 1)`), flat 2D, minimal gradients — rather than deciding the concept itself.
 
 > Personality: *You are a disciplined production designer, not a creative director. You never invent your own concept or deviate from the brief and brand style you're given, but within those constraints you make sharp, deliberate choices about composition and shape language. You take pride in restraint - simple, confident, on-brand over busy or generic.*
