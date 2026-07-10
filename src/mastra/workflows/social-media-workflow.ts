@@ -4,6 +4,7 @@ import { readArticle } from '../tools/read-article-tool';
 import { getBufferMcpClient } from '../tools/buffer-mcp-client';
 import { getDubMcpClient } from '../tools/dub-mcp-client';
 import { platformSchema } from '../config/platforms';
+import { workflowAgentMemory } from '../lib/workflow-memory';
 
 const postSchema = z.object({
   platform: platformSchema,
@@ -62,7 +63,7 @@ const strategyStep = createStep({
       }),
     ),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, runId, resourceId }) => {
     const { articleUrl, articleTitle, articleText, platforms } = inputData;
 
     const strategist = mastra?.getAgent('strategistAgent');
@@ -73,6 +74,7 @@ const strategyStep = createStep({
     const response = await strategist.generate(
       `Article title: ${articleTitle}\nArticle URL: ${articleUrl}\n\nArticle content:\n${articleText}\n\nTarget platforms: ${platforms.join(', ')}\n\nDecide the publication strategy for this article.`,
       {
+        memory: workflowAgentMemory(runId, 'strategist-agent', resourceId),
         structuredOutput: {
           schema: z.object({
             strategySummary: z
@@ -111,7 +113,7 @@ const createContentStep = createStep({
     imageBrief: z.string(),
     posts: z.array(postSchema),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, runId, resourceId }) => {
     const { articleTitle, articleUrl, articleText, platformStrategies, strategySummary } = inputData;
 
     const contentCreator = mastra?.getAgent('contentCreatorAgent');
@@ -124,6 +126,7 @@ const createContentStep = createStep({
     const response = await contentCreator.generate(
       `Article title: ${articleTitle}\nArticle URL: ${articleUrl}\n\nArticle content:\n${articleText}\n\nPublication strategy: ${strategySummary}\n\nPer-platform strategy:\n${JSON.stringify(platformStrategies, null, 2)}\n\nWrite the posts and the hero image creative brief now.`,
       {
+        memory: workflowAgentMemory(runId, 'content-creator-agent', resourceId),
         toolsets,
         structuredOutput: {
           schema: z.object({
@@ -154,7 +157,7 @@ const designImageStep = createStep({
     imageAltText: z.string().nullable(),
     posts: z.array(postSchema),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, runId, resourceId }) => {
     const { strategySummary, imageBrief, posts } = inputData;
 
     const graphicDesigner = mastra?.getAgent('graphicDesignerAgent');
@@ -165,6 +168,7 @@ const designImageStep = createStep({
     const response = await graphicDesigner.generate(
       `Creative brief from the Content Creator:\n${imageBrief}\n\nProduce the hero image now.`,
       {
+        memory: workflowAgentMemory(runId, 'graphic-designer-agent', resourceId),
         structuredOutput: {
           schema: z.object({
             imageUrl: z.string().nullable().describe('URL returned by the generate-image tool'),
@@ -206,7 +210,7 @@ const reviewAndPublishStep = createStep({
     posts: z.array(postSchema),
     message: z.string(),
   }),
-  execute: async ({ inputData, resumeData, suspend, bail, mastra }) => {
+  execute: async ({ inputData, resumeData, suspend, bail, mastra, runId, resourceId }) => {
     const { strategySummary, imageUrl, imageAltText, posts } = inputData;
 
     if (!resumeData) {
@@ -257,6 +261,7 @@ For each post:
 Posts to schedule:
 ${JSON.stringify(selectedPosts, null, 2)}`,
       {
+        memory: workflowAgentMemory(runId, 'content-creator-agent', resourceId),
         toolsets,
         structuredOutput: {
           schema: z.object({

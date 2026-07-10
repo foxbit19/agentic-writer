@@ -1,5 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { workflowAgentMemory } from '../lib/workflow-memory';
 
 const MAX_REVISION_ITERATIONS = 10;
 
@@ -24,7 +25,7 @@ const researchTopicsStep = createStep({
     notes: z.string(),
     researchBrief: z.string(),
   }),
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, runId, resourceId }) => {
     const { notes } = inputData;
 
     const researcher = mastra?.getAgent('researcherAgent');
@@ -34,6 +35,7 @@ const researchTopicsStep = createStep({
 
     const response = await researcher.generate(
       `Here are the author's notes for an upcoming article:\n\n${notes}\n\nExtract the topics, research them online, and produce a research brief for the Writer, including a section that flags any personal content from the notes to preserve.`,
+      { memory: workflowAgentMemory(runId, 'researcher-agent', resourceId) },
     );
 
     return {
@@ -48,7 +50,7 @@ const writeDraftStep = createStep({
   description: 'Writes (or revises) the article draft as MDX',
   inputSchema: draftStateSchema,
   outputSchema: draftStateSchema,
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, runId, resourceId }) => {
     const { notes, researchBrief, draft, guidanceNotes } = inputData;
 
     const writer = mastra?.getAgent('writerAgent');
@@ -61,7 +63,9 @@ const writeDraftStep = createStep({
       ? `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nPrevious draft:\n${draft}\n\nGuidance for this revision (from the editor and/or the human author):\n${guidanceNotes}\n\nRevise the draft to fully address this guidance and return the complete updated MDX article.`
       : `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nWrite the article as a complete MDX document.`;
 
-    const response = await writer.generate(prompt);
+    const response = await writer.generate(prompt, {
+      memory: workflowAgentMemory(runId, 'writer-agent', resourceId),
+    });
 
     return {
       ...inputData,
@@ -76,7 +80,7 @@ const reviewDraftStep = createStep({
   description: 'Editor reviews the draft against notes and research',
   inputSchema: draftStateSchema,
   outputSchema: draftStateSchema,
-  execute: async ({ inputData, mastra }) => {
+  execute: async ({ inputData, mastra, runId, resourceId }) => {
     const { notes, researchBrief, draft } = inputData;
 
     const editor = mastra?.getAgent('editorAgent');
@@ -86,6 +90,7 @@ const reviewDraftStep = createStep({
 
     const response = await editor.generate(
       `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nDraft to review:\n${draft}\n\nReview this draft and tell me whether it's ready for the author's approval.`,
+      { memory: workflowAgentMemory(runId, 'editor-agent', resourceId) },
     );
 
     return {

@@ -2,6 +2,8 @@ import { Agent } from '@mastra/core/agent';
 import { generateImageTool } from '../tools/generate-image-tool';
 import { agentPersonalities } from '../config/personalities';
 import { formatVisualStyle } from '../config/visual-style';
+import { inputTokenLimiter } from '../config/token-limiter';
+import { agentMemory } from '../config/agent-memory';
 
 export const graphicDesignerAgent = new Agent({
   id: 'graphic-designer-agent',
@@ -19,4 +21,6 @@ Your job:
 Personality: ${agentPersonalities.graphicDesigner}`,
   model: 'openai/gpt-4.1',
   tools: { generateImageTool },
+  memory: agentMemory,
+  inputProcessors: [inputTokenLimiter],
 });

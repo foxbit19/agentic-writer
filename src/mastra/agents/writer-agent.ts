@@ -1,5 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { agentPersonalities } from '../config/personalities';
+import { inputTokenLimiter } from '../config/token-limiter';
+import { agentMemory } from '../config/agent-memory';
 
 export const writerAgent = new Agent({
   id: 'writer-agent',
@@ -16,4 +18,6 @@ Your job:
 
 Personality: ${agentPersonalities.writer}`,
   model: 'openai/gpt-5',
+  memory: agentMemory,
+  inputProcessors: [inputTokenLimiter],
 });

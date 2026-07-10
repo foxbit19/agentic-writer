@@ -1,5 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { agentPersonalities } from '../config/personalities';
+import { inputTokenLimiter } from '../config/token-limiter';
+import { agentMemory } from '../config/agent-memory';
 
 export const editorAgent = new Agent({
   id: 'editor-agent',
@@ -14,4 +16,6 @@ Your job:
 
 Personality: ${agentPersonalities.editor}`,
   model: 'openai/gpt-4.1',
+  memory: agentMemory,
+  inputProcessors: [inputTokenLimiter],
 });

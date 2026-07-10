@@ -1,6 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { agentPersonalities } from '../config/personalities';
 import { formatUserProfile } from '../config/user-profile';
+import { inputTokenLimiter } from '../config/token-limiter';
+import { agentMemory } from '../config/agent-memory';
 
 export const strategistAgent = new Agent({
   id: 'strategist-agent',
@@ -19,4 +21,6 @@ ${formatUserProfile()}
 
 Personality: ${agentPersonalities.strategist}`,
   model: 'openai/gpt-5.1',
+  memory: agentMemory,
+  inputProcessors: [inputTokenLimiter],
 });

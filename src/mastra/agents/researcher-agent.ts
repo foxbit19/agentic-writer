@@ -1,6 +1,8 @@
 import { Agent } from '@mastra/core/agent';
 import { webSearchTool } from '../tools/web-search-tool';
 import { agentPersonalities } from '../config/personalities';
+import { inputTokenLimiter } from '../config/token-limiter';
+import { agentMemory } from '../config/agent-memory';
 
 export const researcherAgent = new Agent({
   id: 'researcher-agent',
@@ -18,4 +20,6 @@ Always ground claims in what your searches actually returned. If a search turns 
 Personality: ${agentPersonalities.researcher}`,
   model: 'openai/gpt-5.1',
   tools: { webSearchTool },
+  memory: agentMemory,
+  inputProcessors: [inputTokenLimiter],
 });
