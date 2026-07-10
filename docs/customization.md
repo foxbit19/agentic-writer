@@ -22,15 +22,41 @@ If `user-profile.local.ts` is missing, the example profile is used.
 
 ## Saved articles
 
-Approved MDX from the article workflow is written to `data/articles/` (gitignored):
+Approved Markdown from the article workflow is written to `data/articles/` (gitignored). Each workflow run gets its own folder:
 
 ```
 data/articles/
-  my-article-a1b2c3d4.mdx
-  my-article-a1b2c3d4.json   # id, title, savedAt
+  gpt_5_6_sol_what_actually_matters_a0b2b143/
+    article.json              # id, runId, status, currentDraft, title, timestamps
+    notes.md                  # original input
+    research-brief.md         # researcher output
+    drafts/
+      001.md
+      001.editor-review.md
+      002.md
+      002.editor-review.md
+      002.human-notes.md      # only when you reject a draft
+    approved.md              # written on finalize
 ```
 
-The social media workflow lists these files in an **articleId** dropdown in Studio.
+`article.json` tracks status: `in_progress`, `awaiting_review` (suspended — resume the run in Studio), or `approved`. The social media workflow lists only folders with `approved.md`.
+
+## Social campaigns
+
+Each social workflow run writes a campaign under the article folder:
+
+```
+data/articles/{article_id}/social/{campaign_id}/
+  campaign.json       # runId, articleId, platforms, savedAt, imageUrl
+  strategy.md         # strategist summary + per-platform angles
+  image-brief.md      # content creator brief for the hero image
+  hero-image.json     # { url, altText } — PNG stays in generated-images/
+  posts/
+    linkedin.md
+    twitter.md
+```
+
+Review posts on disk and publish manually. Buffer integration is dormant for now.
 
 ## Brand visuals
 

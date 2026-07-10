@@ -1,6 +1,6 @@
 # Workflows
 
-Two Mastra workflows orchestrate the agents. Run the article workflow first, then feed its MDX output into the social media workflow. Source files live in `src/mastra/workflows/`.
+Two Mastra workflows orchestrate the agents. Run the article workflow first, then feed its Markdown output into the social media workflow. Source files live in `src/mastra/workflows/`.
 
 | Workflow | ID | Source |
 |----------|-----|--------|
@@ -9,7 +9,7 @@ Two Mastra workflows orchestrate the agents. Run the article workflow first, the
 
 ## Article workflow
 
-The `articleWorkflow` turns raw author notes into a human-approved MDX article.
+The `articleWorkflow` turns raw author notes into a human-approved Markdown article.
 
 ```mermaid
 flowchart TD
@@ -24,24 +24,38 @@ flowchart TD
         approve -->|"rejected + notes"| write
     end
 
-    finalize --> output["Save to data/articles/"]
-    output --> result["Output: mdx, articleId, title"]
+    finalize --> output["Save workspace to data/articles/"]
+    output --> result["Output: markdown, articleId, title"]
 ```
 
 ### Steps
 
 1. **Research** — the Researcher extracts topics from the notes and researches them online (including social media/forums).
-2. **Write** — the Writer drafts the article as MDX from the research brief.
+2. **Write** — the Writer drafts the article as Markdown from the research brief.
 3. **Review** — the Editor reviews the draft against the notes and research.
 4. **Approve** — the workflow suspends for human approval; the human approves or rejects with additional notes.
 5. Steps 2–4 repeat, feeding the editor's review and the human's notes back to the Writer, until the human approves.
-6. The approved draft is saved to `data/articles/` and returned with its id.
+6. The approved draft is saved as `approved.md` inside a per-run article folder under `data/articles/`, with numbered drafts and editor reviews preserved in `drafts/`. Resume suspended runs in Studio to continue reviewing an in-progress article later.
+
+### Article workspace
+
+Each workflow run creates a folder (snake_case title + short id). Files are written incrementally:
+
+| When | Written |
+|------|---------|
+| Research done | `notes.md`, `research-brief.md`, `article.json` |
+| Writer done | `drafts/00N.md` |
+| Editor done | `drafts/00N.editor-review.md` |
+| Human rejects | `drafts/00N.human-notes.md`, status → `in_progress` |
+| Human approves | `approved.md`, status → `approved` |
+
+While status is `awaiting_review`, resume the suspended workflow run in Studio. See [customization.md](customization.md) for the full folder layout.
 
 ### Input and output
 
 **Input:** `{ notes: string }`
 
-**Output:** `{ mdx: string, articleId: string, title: string }`
+**Output:** `{ markdown: string, articleId: string, title: string }`
 
 ### Agents
 
@@ -49,7 +63,7 @@ Researcher → Writer → Editor (looping until human approval).
 
 ## Social media workflow
 
-The `socialMediaWorkflow` loads a saved article from `data/articles/` and turns it into a human-approved social media campaign.
+The `socialMediaWorkflow` loads a saved article from `data/articles/` and saves a social campaign to disk.
 
 ```mermaid
 flowchart TD
@@ -57,12 +71,8 @@ flowchart TD
     prepare --> strategy["Plan strategy (Strategist)"]
     strategy --> create["Create posts + image brief (Content Creator)"]
     create --> design["Design hero image (Graphic Designer)"]
-    design --> preview["Preview and approve (suspend)"]
-    preview -->|declined| declined["Output: published false"]
-    preview -->|approved| bufferKey{BUFFER_API_KEY set?}
-    bufferKey -->|no| noKey["Output: published false"]
-    bufferKey -->|yes| publish["Schedule via Buffer MCP (Content Creator)"]
-    publish --> published["Output: published true + results"]
+    design --> save["Save campaign to disk"]
+    save --> output["Output: campaignId, campaignDir, posts, imageUrl"]
 ```
 
 ### Steps
@@ -71,8 +81,7 @@ flowchart TD
 2. **Strategize** — the Strategist decides a publication strategy: a hook/angle, call to action, and timing guidance for each requested platform.
 3. **Create** — the Content Creator writes a platform-native post for every requested platform and an abstract, evocative creative brief for the hero image (no charts or text).
 4. **Design** — the Graphic Designer executes that brief into one on-brand abstract hero image.
-5. **Preview & approve** — the workflow suspends and shows the human the drafted posts and image; the human approves, optionally limiting to a subset of platforms, or declines and the workflow ends without publishing.
-6. **Publish** — on approval, the Content Creator connects to Buffer via MCP, matches each platform to a connected Buffer channel, and adds the post to that channel's queue (skipping platforms with no connected channel).
+5. **Save** — writes the campaign under `data/articles/{articleId}/social/{campaignId}/` (posts, strategy, image brief, hero image metadata). No human approval step; review and publish manually from disk.
 
 ### Input and output
 
@@ -82,13 +91,13 @@ flowchart TD
 - `platforms` — target social platforms
 - `articleUrl` (optional) — published URL for post CTAs and Dub link shortening
 
-**Output:** `{ published: boolean, reason?: string, results?: Array<{ platform, status, detail? }> }`
+**Output:** `{ campaignId: string, campaignDir: string, posts: Array<{ platform, text, hashtags? }>, imageUrl?: string }`
 
 ### Environment and integrations
 
-- **`BUFFER_API_KEY`** (see `.env.example`) — required to schedule posts. Without it, the workflow still runs through strategy, content creation, and preview, then ends with `published: false` at the approval step.
-- **`PUBLIC_BASE_URL`** — must be a publicly reachable URL for Buffer to fetch AI-generated images when publishing for real. Defaults to `http://localhost:4111`, which is fine for previewing drafts without publishing images.
+- **`PUBLIC_BASE_URL`** — base URL for locally generated hero images. Defaults to `http://localhost:4111`.
 - **`DUB_API_KEY`** (optional) — when `articleUrl` is provided, the Content Creator shortens it via [Dub's MCP server](https://dub.co) before writing posts.
+- **Buffer** — not used by the workflow for now. `BUFFER_API_KEY` and `buffer-mcp-client.ts` remain in the repo for a future publish step.
 
 ### Who this content is for
 
@@ -96,4 +105,4 @@ All agents read your profile from `src/mastra/config/user-profile.local.ts` when
 
 ### Agents
 
-Strategist → Content Creator → Graphic Designer → human approval → Content Creator (Buffer publish).
+Strategist → Content Creator → Graphic Designer → save to disk.
