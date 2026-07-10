@@ -6,19 +6,19 @@ Tune the pipeline to your voice and goals without committing personal config.
 
 | File | Committed | Purpose |
 |------|-----------|---------|
-| `src/mastra/config/user-profile.example.ts` | Yes | Default example profile |
-| `src/mastra/config/user-profile.local.example.ts` | Yes | Blank template to copy |
-| `src/mastra/config/user-profile.local.ts` | **No** (gitignored) | Your local profile |
+| `src/mastra/config/user-profile.example.json` | Yes | Default example profile (fallback) |
+| `src/mastra/config/user-profile.local.example.json` | Yes | Blank template to copy |
+| `src/mastra/config/user-profile.local.json` | **No** (gitignored) | Your local profile |
 
 Setup:
 
 ```shell
-cp src/mastra/config/user-profile.local.example.ts src/mastra/config/user-profile.local.ts
+cp src/mastra/config/user-profile.local.example.json src/mastra/config/user-profile.local.json
 ```
 
-Edit `user-profile.local.ts` — name, role, mission, target audience, brand voice, and goals. Every agent (Researcher, Writer, Editor, Strategist, Content Creator) reads this via `formatUserProfile()` at startup.
+Edit `user-profile.local.json` — name, role, mission, target audience, brand voice, and goals. Every agent (Researcher, Writer, Editor, Strategist, Content Creator) reads this via `formatUserProfile()` at startup.
 
-If `user-profile.local.ts` is missing, the example profile is used.
+The loader resolves paths from the project root, including when Mastra runs from `.mastra/output/`. If `user-profile.local.json` is missing, the example profile (`Marty McFly`) is used.
 
 ## Saved articles
 

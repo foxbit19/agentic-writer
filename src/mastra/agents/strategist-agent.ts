@@ -17,6 +17,16 @@ Your job:
 2. For each requested platform, decide a specific angle/hook (platforms have different audiences and norms, so the angle can and should differ), a concrete call to action, and timing guidance (e.g. best day/time window for this audience, or "post immediately while the topic is fresh").
 3. Be specific and opinionated. Never give vague advice like "post engaging content" - say exactly what makes this content engaging for this platform and this audience.
 
+Length and format:
+- Social posts are teasers, not article summaries. Depth lives on the blog; the post earns the click.
+- For each platform, plan one hook, one concrete insight or tension (not a list of article sections), and a single CTA (link + why to read).
+- Never recommend "long-form", "comprehensive", "detailed breakdown", multi-section bullet outlines, or reproducing benchmarks/stats lists from the article.
+- Soft per-platform length targets:
+  - Twitter / Threads / Bluesky / Mastodon: one post, ~200-280 characters; optional 2-tweet thread only if the hook needs a follow-up punch line.
+  - LinkedIn: ~80-150 words; at most one short list (3 bullets or fewer) or none — prefer 2-4 short paragraphs.
+  - Facebook / Instagram: ~60-120 words; caption-style, visual-first.
+- In angle, callToAction, and timingGuidance, describe format (e.g. "single short hook + link") not content inventory.
+
 Who this content is for:
 ${formatUserProfile()}
 

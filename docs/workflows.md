@@ -30,7 +30,7 @@ flowchart TD
 
 ### Steps
 
-1. **Research** — the Researcher extracts topics from the notes and researches them online (including social media/forums).
+1. **Research** — if the notes contain URLs, the workflow fetches each page and the Researcher summarizes only that material (no web search). Otherwise the Researcher extracts topics and researches them online (including social media/forums).
 2. **Write** — the Writer drafts the article as Markdown from the research brief.
 3. **Review** — the Editor reviews the draft against the notes and research.
 4. **Approve** — the workflow suspends for human approval; the human approves or rejects with additional notes.
@@ -44,7 +44,7 @@ Each workflow run creates a folder (snake_case title + short id). Files are writ
 | When | Written |
 |------|---------|
 | Research done | `notes.md`, `research-brief.md`, `article.json` |
-| Writer done | `drafts/00N.md` |
+| Writer done | `drafts/00N.md` (H1 prefixed with `[REV. 00N]`; stripped on approval) |
 | Editor done | `drafts/00N.editor-review.md` |
 | Human rejects | `drafts/00N.human-notes.md`, status → `in_progress` |
 | Human approves | `approved.md`, status → `approved` |
@@ -101,7 +101,7 @@ flowchart TD
 
 ### Who this content is for
 
-All agents read your profile from `src/mastra/config/user-profile.local.ts` when present (see [customization.md](customization.md)).
+All agents read your profile from `src/mastra/config/user-profile.local.json` when present (see [customization.md](customization.md)).
 
 ### Agents
 

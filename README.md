@@ -20,13 +20,17 @@ cp .env.example .env
 ```
 
 > Models are tiered for cost vs quality in `src/mastra/config/models.ts`. Override any agent via env for A/B testing — see [docs/agents.md#ab-testing-model-overrides](docs/agents.md#ab-testing-model-overrides).
+>
+> **Cost disclaimer:** I am not responsible for unexpected costs when using these agents.
 
 Customize the pipeline for yourself (gitignored, local only):
 
 ```shell
-cp src/mastra/config/user-profile.local.example.ts src/mastra/config/user-profile.local.ts
+cp src/mastra/config/user-profile.local.example.json src/mastra/config/user-profile.local.json
 # edit name, mission, audience, voice, and goals
 ```
+
+If `user-profile.local.json` is missing, the committed example profile (`Marty McFly`) is used.
 
 Approved articles are saved under `data/articles/<article-id>/` (gitignored), with numbered drafts and editor reviews kept alongside `approved.md`. Social campaigns are written under each article's `social/` folder. The social media workflow shows approved articles in an **article** dropdown after you run the article workflow.
 
@@ -55,7 +59,7 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 
 | Agent | Model | Description |
 |-------|-------|-------------|
-| Researcher | `openai/gpt-5-mini` | Extracts topics from author notes, searches the web, and produces a research brief for the Writer. |
+| Researcher | `openai/gpt-5-mini` | Extracts topics from author notes; when notes include URLs, fetches those sources only; otherwise searches the web. Produces a research brief for the Writer. |
 | Writer | `openai/gpt-5` | Drafts and revises the article as Markdown from the research brief, notes, and editorial feedback. |
 | Editor | `openai/gpt-4.1-mini` | Reviews each draft against the notes and research brief, and recommends approval or another writing pass. |
 | Strategist | `openai/gpt-5-nano` | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |

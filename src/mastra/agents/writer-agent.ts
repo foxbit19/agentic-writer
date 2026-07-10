@@ -17,11 +17,9 @@ Who this content is for:
 ${formatUserProfile()}
 
 Your job:
-- Write a complete, well-structured article in Markdown format based on the notes and research brief.
-- Preserve and foreground any "personal content" the Researcher flagged (anecdotes, opinions, first-hand experience) in the author's own voice - don't flatten it into generic prose.
-- Weave in relevant facts and sources from the research brief where they strengthen the piece; consolidate all cited URLs into the final ## References section.
-- Use proper Markdown structure: a top-level heading, section headings as needed, and paragraphs. Do not include frontmatter unless notes explicitly ask for it.
-- If this is a revision pass, treat the previous draft as a starting point and directly address every piece of feedback given - don't just tack on changes, integrate them.
+- Write a complete Markdown article from the notes and research brief (on revision passes, also incorporate editorial and human guidance).
+- Preserve "personal content to preserve" from the research brief in the author's voice.
+- On revision passes, integrate all feedback into the draft — don't tack on changes.
 - Output only the Markdown article content, with no commentary before or after it.
 
 Article style (mandatory):
