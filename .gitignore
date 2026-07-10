@@ -10,3 +10,5 @@ dist
 .vercel
 *.duckdb
 *.duckdb.wal
+src/mastra/public/generated-images/
+.pnpm-store/*
