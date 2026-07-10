@@ -1,10 +1,10 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { readArticle } from '../tools/read-article-tool';
 import { getBufferMcpClient } from '../tools/buffer-mcp-client';
 import { getDubMcpClient } from '../tools/dub-mcp-client';
 import { platformSchema } from '../config/platforms';
 import { workflowAgentMemory } from '../lib/workflow-memory';
+import { parseMdxArticle } from '../lib/mdx';
 
 const postSchema = z.object({
   platform: platformSchema,
@@ -18,28 +18,33 @@ const publishResultSchema = z.object({
   detail: z.string().optional(),
 });
 
-const fetchArticleStep = createStep({
-  id: 'fetch-article',
-  description: 'Downloads and extracts readable text from the submitted article URL',
+const prepareArticleStep = createStep({
+  id: 'prepare-article',
+  description: 'Parses the approved MDX article from the article workflow',
   inputSchema: z.object({
-    articleUrl: z.string().url().describe('Link to the article to promote'),
+    mdx: z.string().describe('Approved MDX article from the article workflow'),
     platforms: z.array(platformSchema).min(1).describe('Social media platforms to prepare posts for'),
+    articleUrl: z
+      .string()
+      .url()
+      .optional()
+      .describe('Optional published URL for post CTAs and Dub link shortening'),
   }),
   outputSchema: z.object({
-    articleUrl: z.string(),
+    articleUrl: z.string().optional(),
     platforms: z.array(platformSchema),
     articleTitle: z.string(),
     articleText: z.string(),
   }),
   execute: async ({ inputData }) => {
-    const { articleUrl, platforms } = inputData;
-    const article = await readArticle(articleUrl);
+    const { mdx, platforms, articleUrl } = inputData;
+    const { title, textContent } = parseMdxArticle(mdx);
 
     return {
       articleUrl,
       platforms,
-      articleTitle: article.title,
-      articleText: article.textContent,
+      articleTitle: title,
+      articleText: textContent,
     };
   },
 });
@@ -47,9 +52,9 @@ const fetchArticleStep = createStep({
 const strategyStep = createStep({
   id: 'plan-strategy',
   description: 'The Strategist decides the publication strategy for each platform',
-  inputSchema: fetchArticleStep.outputSchema,
+  inputSchema: prepareArticleStep.outputSchema,
   outputSchema: z.object({
-    articleUrl: z.string(),
+    articleUrl: z.string().optional(),
     articleTitle: z.string(),
     articleText: z.string(),
     platforms: z.array(platformSchema),
@@ -71,8 +76,10 @@ const strategyStep = createStep({
       throw new Error('Strategist agent not found');
     }
 
+    const urlLine = articleUrl ? `Article URL: ${articleUrl}\n` : '';
+
     const response = await strategist.generate(
-      `Article title: ${articleTitle}\nArticle URL: ${articleUrl}\n\nArticle content:\n${articleText}\n\nTarget platforms: ${platforms.join(', ')}\n\nDecide the publication strategy for this article.`,
+      `Article title: ${articleTitle}\n${urlLine}\nArticle content:\n${articleText}\n\nTarget platforms: ${platforms.join(', ')}\n\nDecide the publication strategy for this article.`,
       {
         memory: workflowAgentMemory(runId, 'strategist-agent', resourceId),
         structuredOutput: {
@@ -121,10 +128,11 @@ const createContentStep = createStep({
       throw new Error('Content Creator agent not found');
     }
 
-    const toolsets = process.env.DUB_API_KEY ? await getDubMcpClient().listToolsets() : undefined;
+    const toolsets = process.env.DUB_API_KEY && articleUrl ? await getDubMcpClient().listToolsets() : undefined;
+    const urlLine = articleUrl ? `Article URL: ${articleUrl}\n` : '';
 
     const response = await contentCreator.generate(
-      `Article title: ${articleTitle}\nArticle URL: ${articleUrl}\n\nArticle content:\n${articleText}\n\nPublication strategy: ${strategySummary}\n\nPer-platform strategy:\n${JSON.stringify(platformStrategies, null, 2)}\n\nWrite the posts and the hero image creative brief now.`,
+      `Article title: ${articleTitle}\n${urlLine}\nArticle content:\n${articleText}\n\nPublication strategy: ${strategySummary}\n\nPer-platform strategy:\n${JSON.stringify(platformStrategies, null, 2)}\n\nWrite the posts and the hero image creative brief now.`,
       {
         memory: workflowAgentMemory(runId, 'content-creator-agent', resourceId),
         toolsets,
@@ -281,11 +289,11 @@ ${JSON.stringify(selectedPosts, null, 2)}`,
 export const socialMediaWorkflow = createWorkflow({
   id: 'social-media-workflow',
   description:
-    'Turns an article link into a human-approved, platform-native social media campaign scheduled via Buffer',
-  inputSchema: fetchArticleStep.inputSchema,
+    'Turns an approved MDX article into a human-approved, platform-native social media campaign scheduled via Buffer',
+  inputSchema: prepareArticleStep.inputSchema,
   outputSchema: reviewAndPublishStep.outputSchema,
 })
-  .then(fetchArticleStep)
+  .then(prepareArticleStep)
   .then(strategyStep)
   .then(createContentStep)
   .then(designImageStep)

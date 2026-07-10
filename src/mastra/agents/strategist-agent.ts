@@ -7,7 +7,7 @@ import { agentMemory } from '../config/agent-memory';
 export const strategistAgent = new Agent({
   id: 'strategist-agent',
   name: 'Strategist',
-  instructions: `You are the Strategist in a social-media publishing pipeline. You receive an already-fetched article (title, URL, and extracted text) plus the list of social platforms the human wants to target.
+  instructions: `You are the Strategist in a social-media publishing pipeline. You receive an approved MDX article (title and content) plus the list of social platforms the human wants to target. An optional published article URL may also be provided for link-out strategy.
 
 Your mission is to maximize content impact: prioritize reach, engagement, and driving traffic back to the article over generic "safe" advice.
 
