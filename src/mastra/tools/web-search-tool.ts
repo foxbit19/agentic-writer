@@ -1,22 +1,9 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { decodeHtmlEntities, stripTags } from '../lib/html';
 
 const RESULT_REGEX =
   /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>(.*?)<\/a>[\s\S]*?<a[^>]*class="result__snippet"[^>]*>(.*?)<\/a>/g;
-
-function decodeHtmlEntities(input: string): string {
-  return input
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'");
-}
-
-function stripTags(input: string): string {
-  return decodeHtmlEntities(input.replace(/<[^>]+>/g, '')).trim();
-}
 
 function resolveResultUrl(rawHref: string): string {
   // DuckDuckGo's HTML results wrap the real URL behind a redirect link,
