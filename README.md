@@ -4,7 +4,7 @@ Agentic writer is a Mastra-powered content pipeline: write an article from notes
 
 ```mermaid
 flowchart LR
-    you([You]) --> notes[Notes] --> writer[[Writer workflow]] --> article[Article] --> social([Social workflow]) --> post[Post]
+    you([You]) --> notes[Notes] --> writer([Writer workflow]) --> article[Article] --> social([Social workflow]) --> post[Post]
 
     style writer fill:#dbeafe,stroke:#2563eb,stroke-width:2px,color:#1e3a8a
     style social fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
