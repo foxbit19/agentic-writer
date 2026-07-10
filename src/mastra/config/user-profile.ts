@@ -1,7 +1,14 @@
 import { createRequire } from 'node:module';
 import { userProfile as exampleUserProfile } from './user-profile.example';
 
-export type UserProfile = typeof exampleUserProfile;
+export type UserProfile = {
+  name: string;
+  role: string;
+  mission: string;
+  targetAudience: string;
+  brandVoice: string;
+  goals: readonly string[];
+};
 
 const require = createRequire(import.meta.url);
 
