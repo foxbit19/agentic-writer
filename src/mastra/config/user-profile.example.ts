@@ -1,6 +1,7 @@
+import type { UserProfile } from './user-profile';
+
 /**
- * Example author profile. Copy to `user-profile.local.ts` (gitignored) and edit for your
- * voice, mission, and audience. All agents read the loaded profile at runtime.
+ * Example author profile. Used when `user-profile.local.ts` is missing.
  */
 export const userProfile = {
   name: 'Marty McFly',
@@ -16,4 +17,4 @@ export const userProfile = {
     'Drive qualified traffic back to the product website from every post',
     'Grow follower count and engagement rate on X/Twitter and LinkedIn specifically',
   ],
-} as const;
+} satisfies UserProfile;

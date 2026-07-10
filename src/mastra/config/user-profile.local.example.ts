@@ -1,7 +1,7 @@
 import type { UserProfile } from './user-profile';
 
 /**
- * Local author profile — copy this file to `user-profile.local.ts` and customize.
+ * Local author profile template — copy this file to `user-profile.local.ts` and customize.
  * `user-profile.local.ts` is gitignored and overrides `user-profile.example.ts`.
  */
 export const userProfile = {
