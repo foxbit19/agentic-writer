@@ -11,6 +11,23 @@ Two Mastra workflows orchestrate the agents. Source files live in `src/mastra/wo
 
 The `articleWorkflow` turns raw author notes into a human-approved MDX article.
 
+```mermaid
+flowchart TD
+    input["Input: notes"] --> research["Research topics (Researcher)"]
+    research --> draftLoop
+
+    subgraph draftLoop ["Draft review loop (until approved)"]
+        write["Write draft (Writer)"]
+        review["Review draft (Editor)"]
+        approve["Human approval (suspend)"]
+        write --> review --> approve
+        approve -->|"rejected + notes"| write
+    end
+
+    draftLoop -->|approved| finalize["Finalize article"]
+    finalize --> output["Output: mdx"]
+```
+
 ### Steps
 
 1. **Research** — the Researcher extracts topics from the notes and researches them online (including social media/forums).
@@ -33,6 +50,20 @@ Researcher → Writer → Editor (looping until human approval).
 ## Social media workflow
 
 The `socialMediaWorkflow` turns an article link into a human-approved social media campaign.
+
+```mermaid
+flowchart TD
+    input["Input: articleUrl + platforms"] --> fetch["Fetch article"]
+    fetch --> strategy["Plan strategy (Strategist)"]
+    strategy --> create["Create posts + image brief (Content Creator)"]
+    create --> design["Design hero image (Graphic Designer)"]
+    design --> preview["Preview and approve (suspend)"]
+    preview -->|declined| declined["Output: published false"]
+    preview -->|approved| bufferKey{BUFFER_API_KEY set?}
+    bufferKey -->|no| noKey["Output: published false"]
+    bufferKey -->|yes| publish["Schedule via Buffer MCP (Content Creator)"]
+    publish --> published["Output: published true + results"]
+```
 
 ### Steps
 

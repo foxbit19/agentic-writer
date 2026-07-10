@@ -1,6 +1,11 @@
 # Agentic writer
 
-Agentic writer turns a pile of raw notes into a finished MDX article. Three specialized AI agents research the topics, write a draft, and review it, looping with a human in the loop until the article is approved.
+Agentic writer is a Mastra-powered content pipeline with two workflows:
+
+1. **Article workflow** — turns raw author notes into a finished MDX article.
+2. **Social media workflow** — turns an article link into a platform-native campaign.
+
+*Six* specialized agents run both pipelines with human-in-the-loop approval at the key decision points.
 
 ## Getting Started
 
@@ -19,7 +24,7 @@ Start the development server:
 npm run dev
 ```
 
-Open [http://localhost:4111](http://localhost:4111) in your browser to trigger a run of the `articleWorkflow` with your notes as input, watch each agent's step, and respond to the human-approval prompt when the draft is ready for review.
+Open [http://localhost:4111](http://localhost:4111) in your browser to run workflows in Studio — trigger `articleWorkflow` with your notes, or `socialMediaWorkflow` with an article URL and target platforms — and respond to human-approval prompts when they appear.
 
 You can start editing files inside the `src/mastra` directory. The development server will automatically reload whenever you make changes.
 
