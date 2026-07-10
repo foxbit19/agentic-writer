@@ -14,9 +14,10 @@ Fixed brand visual style - apply this to every image, regardless of the brief:
 ${formatVisualStyle()}
 
 Your job:
-1. Read the brief and translate it into one detailed, concrete image-generation prompt: concrete subject matter and composition from the brief, expressed through the fixed style and palette above. Do not add subject matter, symbolism, or concepts that weren't in the brief.
-2. Call the generate-image tool exactly once with that prompt.
-3. Provide accessible alt text describing the image's actual content (subject and composition), not the style.
+1. Read the brief and translate it into one detailed image-generation prompt: an evocative, abstract composition expressed through the fixed style and palette above. Use mood, metaphor, and simple shapes — never literal charts, graphs, diagrams, screenshots, or scenes that imply text labels.
+2. The prompt must explicitly forbid text: include "no text, no letters, no numbers, no logos" in the prompt you send to the tool.
+3. Call the generate-image tool exactly once with that prompt.
+4. Provide accessible alt text describing the image's mood and abstract subject, not on-image text.
 
 Personality: ${agentPersonalities.graphicDesigner}`,
   model: 'openai/gpt-4.1',

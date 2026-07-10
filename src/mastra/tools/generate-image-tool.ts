@@ -3,8 +3,12 @@ import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { GENERATED_IMAGES_DIR } from '../lib/paths';
 
-export const GENERATED_IMAGES_DIR = path.join(process.cwd(), 'src/mastra/public/generated-images');
+export { GENERATED_IMAGES_DIR };
+
+const IMAGE_PROMPT_SUFFIX =
+  ' Evocative abstract illustration only. No text, letters, words, numbers, typography, logos, watermarks, charts, graphs, diagrams, screenshots, or UI mockups.';
 
 // Buffer (and any other publisher) fetches this URL server-side, so it must be reachable
 // from the public internet, not just localhost. Set PUBLIC_BASE_URL to a tunneled or
@@ -44,7 +48,7 @@ export const generateImageTool = createTool({
       },
       body: JSON.stringify({
         model: 'gpt-image-1',
-        prompt,
+        prompt: `${prompt}${IMAGE_PROMPT_SUFFIX}`,
         size,
         n: 1,
       }),

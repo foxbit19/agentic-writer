@@ -1,0 +1,19 @@
+/**
+ * Example author profile. Copy to `user-profile.local.ts` (gitignored) and edit for your
+ * voice, mission, and audience. All agents read the loaded profile at runtime.
+ */
+export const userProfile = {
+  name: 'Marty McFly',
+  role: 'Indie SaaS founder building developer tools. Time traveler.',
+  mission:
+    'Grow a technical audience that trusts my product opinions, drives qualified signups for my SaaS product, and establishes me as a credible voice in the AI tooling space.',
+  targetAudience:
+    'Software engineers, technical founders, and engineering managers who are active on X/Twitter and LinkedIn and skeptical of hype.',
+  brandVoice:
+    'Direct, technically credible, a little irreverent. No corporate fluff, no empty hype words. Backs claims with specifics.',
+  goals: [
+    'Build a personal brand as a credible, opinionated voice in AI-assisted software development',
+    'Drive qualified traffic back to the product website from every post',
+    'Grow follower count and engagement rate on X/Twitter and LinkedIn specifically',
+  ],
+} as const;

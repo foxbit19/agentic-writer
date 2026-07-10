@@ -4,7 +4,29 @@ import { getBufferMcpClient } from '../tools/buffer-mcp-client';
 import { getDubMcpClient } from '../tools/dub-mcp-client';
 import { platformSchema } from '../config/platforms';
 import { workflowAgentMemory } from '../lib/workflow-memory';
+import { listSavedArticleIds, readSavedArticle } from '../lib/articles';
 import { parseMdxArticle } from '../lib/mdx';
+
+function buildArticleIdSchema() {
+  const ids = listSavedArticleIds();
+  if (ids.length === 0) {
+    return z
+      .string()
+      .min(1)
+      .describe('No saved articles yet. Run the article workflow first, then restart dev if needed.');
+  }
+  return z.enum(ids as [string, ...string[]]).describe('Saved article to promote');
+}
+
+const socialMediaWorkflowInputSchema = z.object({
+  articleId: buildArticleIdSchema(),
+  platforms: z.array(platformSchema).min(1).describe('Social media platforms to prepare posts for'),
+  articleUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe('Optional published URL for post CTAs and Dub link shortening'),
+});
 
 const postSchema = z.object({
   platform: platformSchema,
@@ -20,16 +42,8 @@ const publishResultSchema = z.object({
 
 const prepareArticleStep = createStep({
   id: 'prepare-article',
-  description: 'Parses the approved MDX article from the article workflow',
-  inputSchema: z.object({
-    mdx: z.string().describe('Approved MDX article from the article workflow'),
-    platforms: z.array(platformSchema).min(1).describe('Social media platforms to prepare posts for'),
-    articleUrl: z
-      .string()
-      .url()
-      .optional()
-      .describe('Optional published URL for post CTAs and Dub link shortening'),
-  }),
+  description: 'Loads a saved MDX article from data/articles/',
+  inputSchema: socialMediaWorkflowInputSchema,
   outputSchema: z.object({
     articleUrl: z.string().optional(),
     platforms: z.array(platformSchema),
@@ -37,13 +51,14 @@ const prepareArticleStep = createStep({
     articleText: z.string(),
   }),
   execute: async ({ inputData }) => {
-    const { mdx, platforms, articleUrl } = inputData;
-    const { title, textContent } = parseMdxArticle(mdx);
+    const { articleId, platforms, articleUrl } = inputData;
+    const saved = await readSavedArticle(articleId);
+    const { title, textContent } = parseMdxArticle(saved.mdx);
 
     return {
       articleUrl,
       platforms,
-      articleTitle: title,
+      articleTitle: title || saved.title,
       articleText: textContent,
     };
   },
@@ -289,8 +304,8 @@ ${JSON.stringify(selectedPosts, null, 2)}`,
 export const socialMediaWorkflow = createWorkflow({
   id: 'social-media-workflow',
   description:
-    'Turns an approved MDX article into a human-approved, platform-native social media campaign scheduled via Buffer',
-  inputSchema: prepareArticleStep.inputSchema,
+    'Turns a saved MDX article into a human-approved, platform-native social media campaign scheduled via Buffer',
+  inputSchema: socialMediaWorkflowInputSchema,
   outputSchema: reviewAndPublishStep.outputSchema,
 })
   .then(prepareArticleStep)

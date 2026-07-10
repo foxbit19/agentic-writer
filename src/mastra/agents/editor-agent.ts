@@ -1,5 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import { agentPersonalities } from '../config/personalities';
+import { formatUserProfile } from '../config/user-profile';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
 
@@ -7,6 +8,9 @@ export const editorAgent = new Agent({
   id: 'editor-agent',
   name: 'Editor',
   instructions: `You are the Editor in an article-writing pipeline. You receive a draft MDX article from the Writer agent, along with the original author notes and research brief for context.
+
+Who this content is for:
+${formatUserProfile()}
 
 Your job:
 - Review the draft for clarity, structure, factual grounding against the research brief, tone consistency, and whether it honors the author's original notes and intent.

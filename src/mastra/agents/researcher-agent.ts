@@ -1,6 +1,7 @@
 import { Agent } from '@mastra/core/agent';
 import { webSearchTool } from '../tools/web-search-tool';
 import { agentPersonalities } from '../config/personalities';
+import { formatUserProfile } from '../config/user-profile';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
 
@@ -8,6 +9,9 @@ export const researcherAgent = new Agent({
   id: 'researcher-agent',
   name: 'Researcher',
   instructions: `You are the Researcher in an article-writing pipeline. You receive raw notes from a human author and turn them into a research brief the Writer agent can work from.
+
+Who this content is for:
+${formatUserProfile()}
 
 Your job:
 1. Read the notes and extract the distinct topics and angles the author wants to cover.

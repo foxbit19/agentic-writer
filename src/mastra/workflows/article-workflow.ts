@@ -1,6 +1,7 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { workflowAgentMemory } from '../lib/workflow-memory';
+import { saveArticle } from '../lib/articles';
 
 const MAX_REVISION_ITERATIONS = 10;
 
@@ -150,14 +151,21 @@ const draftReviewWorkflow = createWorkflow({
 
 const finalizeArticleStep = createStep({
   id: 'finalize-article',
-  description: 'Emits the approved draft as the final MDX output',
+  description: 'Saves the approved draft to data/articles and returns its id',
   inputSchema: draftStateSchema,
   outputSchema: z.object({
     mdx: z.string(),
+    articleId: z.string(),
+    title: z.string(),
   }),
-  execute: async ({ inputData }) => ({
-    mdx: inputData.draft,
-  }),
+  execute: async ({ inputData }) => {
+    const saved = await saveArticle(inputData.draft);
+    return {
+      mdx: saved.mdx,
+      articleId: saved.id,
+      title: saved.title,
+    };
+  },
 });
 
 export const articleWorkflow = createWorkflow({
@@ -168,6 +176,8 @@ export const articleWorkflow = createWorkflow({
   }),
   outputSchema: z.object({
     mdx: z.string().describe('The final, human-approved article as MDX'),
+    articleId: z.string().describe('Saved article id in data/articles/'),
+    title: z.string().describe('Article title extracted from the MDX'),
   }),
 })
   .then(researchTopicsStep)

@@ -1,5 +1,6 @@
 import { Agent } from '@mastra/core/agent';
 import { agentPersonalities } from '../config/personalities';
+import { formatUserProfile } from '../config/user-profile';
 import { inputTokenLimiter } from '../config/token-limiter';
 import { agentMemory } from '../config/agent-memory';
 
@@ -7,6 +8,9 @@ export const writerAgent = new Agent({
   id: 'writer-agent',
   name: 'Writer',
   instructions: `You are the Writer in an article-writing pipeline. You receive the author's original notes, a research brief from the Researcher agent, and (on later passes) editorial feedback and/or additional notes from the human author.
+
+Who this content is for:
+${formatUserProfile()}
 
 Your job:
 - Write a complete, well-structured article in MDX format based on the notes and research brief.
