@@ -5,7 +5,7 @@ import { platformSchema } from '../config/platforms';
 import { workflowAgentMemory } from '../lib/workflow-memory';
 import { listSavedArticleIds, readSavedArticle } from '../lib/articles';
 import { parseMarkdownArticle } from '../lib/markdown';
-import { saveSocialCampaign } from '../lib/social-campaigns';
+import { initSocialCampaignWorkspace, saveSocialCampaign } from '../lib/social-campaigns';
 
 function buildArticleIdSchema() {
   const ids = listSavedArticleIds();
@@ -175,12 +175,47 @@ const createContentStep = createStep({
   },
 });
 
-const designImageStep = createStep({
-  id: 'design-image',
-  description: 'The Graphic Designer executes the creative brief into one on-brand hero image',
+const initCampaignStep = createStep({
+  id: 'init-campaign',
+  description: 'Creates the campaign folder under the article before generating the hero image',
   inputSchema: createContentStep.outputSchema,
   outputSchema: z.object({
     articleId: z.string(),
+    campaignId: z.string(),
+    campaignDir: z.string(),
+    platforms: z.array(platformSchema),
+    strategySummary: z.string(),
+    platformStrategies: z.array(platformStrategySchema),
+    imageBrief: z.string(),
+    posts: z.array(postSchema),
+  }),
+  execute: async ({ inputData, runId }) => {
+    const { campaignId, campaignDir } = await initSocialCampaignWorkspace(
+      inputData.articleId,
+      runId,
+    );
+
+    return {
+      articleId: inputData.articleId,
+      campaignId,
+      campaignDir,
+      platforms: inputData.platforms,
+      strategySummary: inputData.strategySummary,
+      platformStrategies: inputData.platformStrategies,
+      imageBrief: inputData.imageBrief,
+      posts: inputData.posts,
+    };
+  },
+});
+
+const designImageStep = createStep({
+  id: 'design-image',
+  description: 'The Graphic Designer executes the creative brief into one on-brand hero image',
+  inputSchema: initCampaignStep.outputSchema,
+  outputSchema: z.object({
+    articleId: z.string(),
+    campaignId: z.string(),
+    campaignDir: z.string(),
     platforms: z.array(platformSchema),
     strategySummary: z.string(),
     platformStrategies: z.array(platformStrategySchema),
@@ -192,6 +227,8 @@ const designImageStep = createStep({
   execute: async ({ inputData, mastra, runId, resourceId }) => {
     const {
       articleId,
+      campaignId,
+      campaignDir,
       platforms,
       strategySummary,
       platformStrategies,
@@ -205,7 +242,7 @@ const designImageStep = createStep({
     }
 
     const response = await graphicDesigner.generate(
-      `Creative brief from the Content Creator:\n${imageBrief}\n\nProduce the hero image now.`,
+      `Creative brief from the Content Creator:\n${imageBrief}\n\nSave the hero image inside the article campaign folder.\noutputDir: ${campaignDir}\narticleId: ${articleId}\ncampaignId: ${campaignId}\n\nProduce the hero image now.`,
       {
         memory: workflowAgentMemory(runId, 'graphic-designer-agent', resourceId),
         structuredOutput: {
@@ -219,6 +256,8 @@ const designImageStep = createStep({
 
     return {
       articleId,
+      campaignId,
+      campaignDir,
       platforms,
       strategySummary,
       platformStrategies,
@@ -243,6 +282,8 @@ const saveCampaignStep = createStep({
   execute: async ({ inputData, runId }) => {
     const saved = await saveSocialCampaign({
       articleId: inputData.articleId,
+      campaignId: inputData.campaignId,
+      campaignDir: inputData.campaignDir,
       runId,
       platforms: inputData.platforms,
       strategySummary: inputData.strategySummary,
@@ -272,6 +313,7 @@ export const socialMediaWorkflow = createWorkflow({
   .then(prepareArticleStep)
   .then(strategyStep)
   .then(createContentStep)
+  .then(initCampaignStep)
   .then(designImageStep)
   .then(saveCampaignStep)
   .commit();

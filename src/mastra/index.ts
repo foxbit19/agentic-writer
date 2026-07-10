@@ -16,7 +16,8 @@ import { editorAgent } from './agents/editor-agent';
 import { strategistAgent } from './agents/strategist-agent';
 import { contentCreatorAgent } from './agents/content-creator-agent';
 import { graphicDesignerAgent } from './agents/graphic-designer-agent';
-import { GENERATED_IMAGES_DIR } from './tools/generate-image-tool';
+import { HERO_IMAGE_FILENAME } from './lib/social-campaigns';
+import { ARTICLES_DIR, GENERATED_IMAGES_DIR } from './lib/paths';
 
 export const mastra = new Mastra({
   workflows: { articleWorkflow, socialMediaWorkflow },
@@ -40,11 +41,11 @@ export const mastra = new Mastra({
       default: {
         serviceName: 'agentic-writer',
         exporters: [
-          new MastraStorageExporter(), // Persists traces, logs, and metrics to local DuckDB (visible in Studio)
-          new MastraPlatformExporter(), // Sends data to Mastra Platform when MASTRA_PLATFORM_ACCESS_TOKEN is set
+          new MastraStorageExporter(),
+          new MastraPlatformExporter(),
         ],
         spanOutputProcessors: [
-          new SensitiveDataFilter(), // Redacts sensitive data like passwords, tokens, keys
+          new SensitiveDataFilter(),
         ],
         logging: {
           enabled: true,
@@ -55,9 +56,26 @@ export const mastra = new Mastra({
   }),
   server: {
     apiRoutes: [
-      // Serves images the content-creator agent generates so they have a URL Buffer can
-      // fetch. Filenames are always crypto.randomUUID() + '.png', so this pattern also
-      // rules out path traversal.
+      registerApiRoute('/articles/:articleId/social/:campaignId/hero-image.png', {
+        method: 'GET',
+        handler: async (c) => {
+          const articleId = c.req.param('articleId');
+          const campaignId = c.req.param('campaignId');
+          if (!/^[a-z0-9_]+$/i.test(articleId) || !/^[0-9TZ_-]+_[a-z0-9]+$/i.test(campaignId)) {
+            return c.json({ error: 'Not found' }, 404);
+          }
+
+          try {
+            const file = await readFile(
+              path.join(ARTICLES_DIR, articleId, 'social', campaignId, HERO_IMAGE_FILENAME),
+            );
+            return new Response(new Uint8Array(file), { headers: { 'Content-Type': 'image/png' } });
+          } catch {
+            return c.json({ error: 'Not found' }, 404);
+          }
+        },
+      }),
+      // Legacy route for images saved before campaign-folder storage
       registerApiRoute('/generated-images/:filename', {
         method: 'GET',
         handler: async (c) => {

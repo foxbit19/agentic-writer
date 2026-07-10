@@ -28,6 +28,8 @@ export interface SavedSocialCampaign {
 
 export interface SaveSocialCampaignInput {
   articleId: string;
+  campaignId: string;
+  campaignDir: string;
   runId: string;
   platforms: z.infer<typeof platformSchema>[];
   strategySummary: string;
@@ -40,19 +42,43 @@ export interface SaveSocialCampaignInput {
 
 const APPROVED_FILENAME = 'approved.md';
 const LEGACY_APPROVED_FILENAME = 'approved.mdx';
+export const HERO_IMAGE_FILENAME = 'hero-image.png';
 
 function articleDir(articleId: string): string {
   return path.join(ARTICLES_DIR, articleId);
 }
 
-function socialDir(articleId: string): string {
-  return path.join(articleDir(articleId), 'social');
-}
-
-function createCampaignId(runId: string): string {
+export function createCampaignId(runId: string): string {
   const timestamp = new Date().toISOString().replace(/:/g, '-').replace(/\.\d{3}Z$/, '');
   const shortRunId = runId.slice(0, 8) || randomUUID().slice(0, 8);
   return `${timestamp}_${shortRunId}`;
+}
+
+export function getCampaignDir(articleId: string, campaignId: string): string {
+  return path.join(articleDir(articleId), 'social', campaignId);
+}
+
+function assertArticleApproved(articleId: string): void {
+  const approvedPath = path.join(articleDir(articleId), APPROVED_FILENAME);
+  const legacyApprovedPath = path.join(articleDir(articleId), LEGACY_APPROVED_FILENAME);
+  if (!existsSync(approvedPath) && !existsSync(legacyApprovedPath)) {
+    throw new Error(
+      `Article "${articleId}" has no approved.md — run the article workflow first.`,
+    );
+  }
+}
+
+export async function initSocialCampaignWorkspace(
+  articleId: string,
+  runId: string,
+): Promise<{ campaignId: string; campaignDir: string }> {
+  assertArticleApproved(articleId);
+
+  const campaignId = createCampaignId(runId);
+  const campaignDir = getCampaignDir(articleId, campaignId);
+  await mkdir(path.join(campaignDir, 'posts'), { recursive: true });
+
+  return { campaignId, campaignDir };
 }
 
 function formatStrategyMarkdown(
@@ -93,16 +119,9 @@ ${post.text}
 export async function saveSocialCampaign(
   input: SaveSocialCampaignInput,
 ): Promise<SavedSocialCampaign> {
-  const approvedPath = path.join(articleDir(input.articleId), APPROVED_FILENAME);
-  const legacyApprovedPath = path.join(articleDir(input.articleId), LEGACY_APPROVED_FILENAME);
-  if (!existsSync(approvedPath) && !existsSync(legacyApprovedPath)) {
-    throw new Error(
-      `Article "${input.articleId}" has no approved.md — run the article workflow first.`,
-    );
-  }
+  assertArticleApproved(input.articleId);
 
-  const campaignId = createCampaignId(input.runId);
-  const campaignDir = path.join(socialDir(input.articleId), campaignId);
+  const { campaignId, campaignDir } = input;
   const postsDir = path.join(campaignDir, 'posts');
 
   await mkdir(postsDir, { recursive: true });
@@ -134,6 +153,7 @@ export async function saveSocialCampaign(
       path.join(campaignDir, 'hero-image.json'),
       JSON.stringify(
         {
+          filename: HERO_IMAGE_FILENAME,
           url: input.imageUrl,
           altText: input.imageAltText,
         },
