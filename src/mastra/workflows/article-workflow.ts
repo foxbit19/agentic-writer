@@ -1,6 +1,9 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
+import { extractUrls } from '../lib/extract-urls';
+import { applyDraftRevisionToMarkdown, stripDraftRevisionFromMarkdown } from '../lib/markdown';
 import { workflowAgentMemory } from '../lib/workflow-memory';
+import { readArticle } from '../tools/read-article-tool';
 import {
   finalizeArticle,
   initArticleWorkspace,
@@ -46,10 +49,30 @@ const researchTopicsStep = createStep({
       throw new Error('Researcher agent not found');
     }
 
-    const response = await researcher.generate(
-      `Here are the author's notes for an upcoming article:\n\n${notes}\n\nExtract the topics, research them online, and produce a research brief for the Writer, including a section that flags any personal content from the notes to preserve.`,
-      { memory: workflowAgentMemory(runId, 'researcher-agent', resourceId) },
-    );
+    const sourceUrls = extractUrls(notes);
+    const fetchedSources =
+      sourceUrls.length > 0
+        ? await Promise.all(
+            sourceUrls.map(async (url) => {
+              try {
+                const article = await readArticle(url);
+                return `### ${article.title}\nURL: ${article.url}\n\n${article.textContent}`;
+              } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                return `### Failed to fetch ${url}\n${message}`;
+              }
+            }),
+          )
+        : [];
+
+    const researchPrompt =
+      sourceUrls.length > 0
+        ? `Here are the author's notes for an upcoming article:\n\n${notes}\n\nThe notes include source URL(s). The article must be based ONLY on these notes and the fetched source material below — do not add facts from other sources or general knowledge.\n\nFetched source material:\n\n${fetchedSources.join('\n\n---\n\n')}\n\nProduce a research brief for the Writer from this material only. Do not use web search. Flag any personal content from the notes to preserve.`
+        : `Here are the author's notes for an upcoming article:\n\n${notes}\n\nExtract the topics, research them online, and produce a research brief for the Writer, including a section that flags any personal content from the notes to preserve.`;
+
+    const response = await researcher.generate(researchPrompt, {
+      memory: workflowAgentMemory(runId, 'researcher-agent', resourceId),
+    });
 
     await saveResearchBrief(articleId, response.text);
 
@@ -76,20 +99,22 @@ const writeDraftStep = createStep({
     }
 
     const isRevision = draft.trim().length > 0;
+    const previousDraft = isRevision ? stripDraftRevisionFromMarkdown(draft) : '';
     const prompt = isRevision
-      ? `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nPrevious draft:\n${draft}\n\nGuidance for this revision (from the editor and/or the human author):\n${guidanceNotes}\n\nRevise the draft to fully address this guidance and return the complete updated Markdown article.`
-      : `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nWrite the article as a complete Markdown document.`;
+      ? `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nPrevious draft:\n${previousDraft}\n\nGuidance for this revision (from the editor and/or the human author):\n${guidanceNotes}\n\nRevise the draft to fully address this guidance and return the complete updated Markdown article. Do not add a revision number to the H1 title — the workflow adds that automatically.`
+      : `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nWrite the article as a complete Markdown document. Do not add a revision number to the H1 title — the workflow adds that automatically.`;
 
     const response = await writer.generate(prompt, {
       memory: workflowAgentMemory(runId, 'writer-agent', resourceId),
     });
 
-    const articleId = await saveDraft(inputData.articleId, draftNumber, response.text);
+    const draftMarkdown = applyDraftRevisionToMarkdown(response.text, draftNumber);
+    const articleId = await saveDraft(inputData.articleId, draftNumber, draftMarkdown);
 
     return {
       ...inputData,
       articleId,
-      draft: response.text,
+      draft: draftMarkdown,
       editorReview: '',
       draftNumber,
     };
