@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ARTICLES_DIR } from './paths';
-import { parseMarkdownArticle } from './markdown';
+import { parseMarkdownArticle, stripDraftRevisionFromMarkdown } from './markdown';
 
 export type ArticleStatus = 'in_progress' | 'awaiting_review' | 'approved';
 
@@ -234,10 +234,11 @@ export async function finalizeArticle(
   markdown: string,
   approvedDraft: number,
 ): Promise<SavedArticle> {
-  const { title } = parseMarkdownArticle(markdown);
+  const approvedMarkdown = stripDraftRevisionFromMarkdown(markdown);
+  const { title } = parseMarkdownArticle(approvedMarkdown);
   const savedAt = new Date().toISOString();
 
-  await writeFile(approvedPath(articleId), markdown, 'utf8');
+  await writeFile(approvedPath(articleId), approvedMarkdown, 'utf8');
   const manifest = await touchManifest(articleId, {
     title,
     status: 'approved',
@@ -248,7 +249,7 @@ export async function finalizeArticle(
   return {
     id: manifest.id,
     title: manifest.title,
-    markdown,
+    markdown: approvedMarkdown,
     savedAt,
   };
 }
