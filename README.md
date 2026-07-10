@@ -53,14 +53,14 @@ See [docs/workflows.md](docs/workflows.md) for steps, inputs/outputs, and integr
 
 Six specialized agents power the two workflows. Each agent's tone and personality is centralized in `src/mastra/config/personalities.ts` so it can be tuned project-wide without touching the agent definitions.
 
-| Agent | Description |
-|-------|-------------|
-| Researcher | Extracts topics from author notes, searches the web, and produces a research brief for the Writer. |
-| Writer | Drafts and revises the article as MDX from the research brief, notes, and editorial feedback. |
-| Editor | Reviews each draft against the notes and research brief, and recommends approval or another writing pass. |
-| Strategist | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |
-| Content Creator | Writes platform-native posts from MDX, optionally shortens a publish URL via Dub, and schedules via Buffer. |
-| Graphic Designer | Executes the Content Creator's creative brief into one on-brand hero image. |
+| Agent | Model | Description |
+|-------|-------|-------------|
+| Researcher | `openai/gpt-5.1` | Extracts topics from author notes, searches the web, and produces a research brief for the Writer. |
+| Writer | `openai/gpt-5` | Drafts and revises the article as MDX from the research brief, notes, and editorial feedback. |
+| Editor | `openai/gpt-4.1` | Reviews each draft against the notes and research brief, and recommends approval or another writing pass. |
+| Strategist | `openai/gpt-5.1` | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |
+| Content Creator | `openai/gpt-5` | Writes platform-native posts from MDX, optionally shortens a publish URL via Dub, and schedules via Buffer. |
+| Graphic Designer | `openai/gpt-4.1` | Executes the Content Creator's creative brief into one on-brand hero image. |
 
 See [docs/agents.md](docs/agents.md) for models, tools, full instructions, and personality details.
 
