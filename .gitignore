@@ -12,6 +12,6 @@ dist
 *.duckdb.wal
 data/
 **/generated-images/
-src/mastra/config/user-profile.local.ts
+src/mastra/config/user-profile.local.json
 .pnpm-store/*
 src/**/.DS_Store

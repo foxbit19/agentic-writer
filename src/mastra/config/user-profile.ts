@@ -1,5 +1,6 @@
-import { createRequire } from 'node:module';
-import { userProfile as exampleUserProfile } from './user-profile.example';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { PROJECT_ROOT } from '../lib/paths';
 
 export type UserProfile = {
   name: string;
@@ -10,15 +11,20 @@ export type UserProfile = {
   goals: readonly string[];
 };
 
-const require = createRequire(import.meta.url);
+const CONFIG_DIR = join(PROJECT_ROOT, 'src/mastra/config');
+const LOCAL_PROFILE_PATH = join(CONFIG_DIR, 'user-profile.local.json');
+const EXAMPLE_PROFILE_PATH = join(CONFIG_DIR, 'user-profile.example.json');
+
+function readProfile(path: string): UserProfile {
+  return JSON.parse(readFileSync(path, 'utf8')) as UserProfile;
+}
 
 function loadUserProfile(): UserProfile {
-  try {
-    const local = require('./user-profile.local') as { userProfile: UserProfile };
-    return local.userProfile;
-  } catch {
-    return exampleUserProfile;
+  if (existsSync(LOCAL_PROFILE_PATH)) {
+    return readProfile(LOCAL_PROFILE_PATH);
   }
+
+  return readProfile(EXAMPLE_PROFILE_PATH);
 }
 
 export const userProfile = loadUserProfile();
