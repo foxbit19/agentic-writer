@@ -17,6 +17,7 @@ After completing a code change, check whether user-facing documentation needs up
 | `README.md` | Getting started, env requirements, high-level agent/workflow summary tables |
 | `docs/agents.md` | Agent instructions, models, tools, personalities, memory/token-limit behavior per agent |
 | `docs/workflows.md` | Workflow steps, inputs/outputs, integration notes, env requirements per workflow |
+| `docs/customization.md` | Local author profile, saved articles, brand visuals |
 | `docs/observability-memory-and-token-limiter.md` | Observability exporters/storage, observational memory, input token limiter |
 | `.env.example` | New, renamed, or removed environment variables |
 | `AGENTS.md` | New project-wide rules for coding agents (only when conventions change) |
