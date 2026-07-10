@@ -1,19 +1,29 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
 import { workflowAgentMemory } from '../lib/workflow-memory';
-import { saveArticle } from '../lib/articles';
+import {
+  finalizeArticle,
+  initArticleWorkspace,
+  saveDraft,
+  saveEditorReview,
+  saveHumanNotes,
+  saveResearchBrief,
+  setArticleStatus,
+} from '../lib/articles';
 
 const MAX_REVISION_ITERATIONS = 10;
 
 // Shared state threaded through the write -> review -> human-approval loop.
 // Input and output schemas of the loop must match so it can feed itself on each iteration.
 const draftStateSchema = z.object({
+  articleId: z.string(),
   notes: z.string(),
   researchBrief: z.string(),
   draft: z.string(),
   editorReview: z.string(),
   guidanceNotes: z.string(),
   approved: z.boolean(),
+  draftNumber: z.number(),
 });
 
 const researchTopicsStep = createStep({
@@ -23,11 +33,13 @@ const researchTopicsStep = createStep({
     notes: z.string().describe('Raw author notes to build the article from'),
   }),
   outputSchema: z.object({
+    articleId: z.string(),
     notes: z.string(),
     researchBrief: z.string(),
   }),
   execute: async ({ inputData, mastra, runId, resourceId }) => {
     const { notes } = inputData;
+    const { articleId } = await initArticleWorkspace(runId, notes);
 
     const researcher = mastra?.getAgent('researcherAgent');
     if (!researcher) {
@@ -39,7 +51,10 @@ const researchTopicsStep = createStep({
       { memory: workflowAgentMemory(runId, 'researcher-agent', resourceId) },
     );
 
+    await saveResearchBrief(articleId, response.text);
+
     return {
+      articleId,
       notes,
       researchBrief: response.text,
     };
@@ -48,11 +63,12 @@ const researchTopicsStep = createStep({
 
 const writeDraftStep = createStep({
   id: 'write-draft',
-  description: 'Writes (or revises) the article draft as MDX',
+  description: 'Writes (or revises) the article draft as Markdown',
   inputSchema: draftStateSchema,
   outputSchema: draftStateSchema,
   execute: async ({ inputData, mastra, runId, resourceId }) => {
     const { notes, researchBrief, draft, guidanceNotes } = inputData;
+    const draftNumber = inputData.draftNumber + 1;
 
     const writer = mastra?.getAgent('writerAgent');
     if (!writer) {
@@ -61,17 +77,21 @@ const writeDraftStep = createStep({
 
     const isRevision = draft.trim().length > 0;
     const prompt = isRevision
-      ? `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nPrevious draft:\n${draft}\n\nGuidance for this revision (from the editor and/or the human author):\n${guidanceNotes}\n\nRevise the draft to fully address this guidance and return the complete updated MDX article.`
-      : `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nWrite the article as a complete MDX document.`;
+      ? `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nPrevious draft:\n${draft}\n\nGuidance for this revision (from the editor and/or the human author):\n${guidanceNotes}\n\nRevise the draft to fully address this guidance and return the complete updated Markdown article.`
+      : `Author notes:\n${notes}\n\nResearch brief:\n${researchBrief}\n\nWrite the article as a complete Markdown document.`;
 
     const response = await writer.generate(prompt, {
       memory: workflowAgentMemory(runId, 'writer-agent', resourceId),
     });
 
+    const articleId = await saveDraft(inputData.articleId, draftNumber, response.text);
+
     return {
       ...inputData,
+      articleId,
       draft: response.text,
       editorReview: '',
+      draftNumber,
     };
   },
 });
@@ -94,6 +114,8 @@ const reviewDraftStep = createStep({
       { memory: workflowAgentMemory(runId, 'editor-agent', resourceId) },
     );
 
+    await saveEditorReview(inputData.articleId, inputData.draftNumber, response.text);
+
     return {
       ...inputData,
       editorReview: response.text,
@@ -114,13 +136,18 @@ const humanApprovalStep = createStep({
     draft: z.string(),
     editorReview: z.string(),
     message: z.string(),
+    articleId: z.string(),
+    draftNumber: z.number(),
   }),
   execute: async ({ inputData, resumeData, suspend }) => {
     if (!resumeData) {
+      await setArticleStatus(inputData.articleId, 'awaiting_review');
       return await suspend({
         draft: inputData.draft,
         editorReview: inputData.editorReview,
         message: 'Review the draft and editor feedback, then approve or reject with additional notes.',
+        articleId: inputData.articleId,
+        draftNumber: inputData.draftNumber,
       });
     }
 
@@ -130,6 +157,8 @@ const humanApprovalStep = createStep({
         approved: true,
       };
     }
+
+    await saveHumanNotes(inputData.articleId, inputData.draftNumber, resumeData.notes);
 
     return {
       ...inputData,
@@ -154,14 +183,18 @@ const finalizeArticleStep = createStep({
   description: 'Saves the approved draft to data/articles and returns its id',
   inputSchema: draftStateSchema,
   outputSchema: z.object({
-    mdx: z.string(),
+    markdown: z.string(),
     articleId: z.string(),
     title: z.string(),
   }),
   execute: async ({ inputData }) => {
-    const saved = await saveArticle(inputData.draft);
+    const saved = await finalizeArticle(
+      inputData.articleId,
+      inputData.draft,
+      inputData.draftNumber,
+    );
     return {
-      mdx: saved.mdx,
+      markdown: saved.markdown,
       articleId: saved.id,
       title: saved.title,
     };
@@ -170,24 +203,26 @@ const finalizeArticleStep = createStep({
 
 export const articleWorkflow = createWorkflow({
   id: 'article-workflow',
-  description: 'Turns author notes into a researched, written, and human-approved MDX article',
+  description: 'Turns author notes into a researched, written, and human-approved Markdown article',
   inputSchema: z.object({
     notes: z.string().describe('Raw notes to write the article from'),
   }),
   outputSchema: z.object({
-    mdx: z.string().describe('The final, human-approved article as MDX'),
+    markdown: z.string().describe('The final, human-approved article as Markdown'),
     articleId: z.string().describe('Saved article id in data/articles/'),
-    title: z.string().describe('Article title extracted from the MDX'),
+    title: z.string().describe('Article title extracted from the Markdown'),
   }),
 })
   .then(researchTopicsStep)
   .map(async ({ inputData }) => ({
+    articleId: inputData.articleId,
     notes: inputData.notes,
     researchBrief: inputData.researchBrief,
     draft: '',
     editorReview: '',
     guidanceNotes: '',
     approved: false,
+    draftNumber: 0,
   }))
   .dountil(draftReviewWorkflow, async ({ inputData, iterationCount }) => {
     if (iterationCount >= MAX_REVISION_ITERATIONS) {
