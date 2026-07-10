@@ -1,6 +1,6 @@
 # Workflows
 
-Two Mastra workflows orchestrate the agents. Source files live in `src/mastra/workflows/`.
+Two Mastra workflows orchestrate the agents. Run the article workflow first, then feed its MDX output into the social media workflow. Source files live in `src/mastra/workflows/`.
 
 | Workflow | ID | Source |
 |----------|-----|--------|
@@ -49,12 +49,12 @@ Researcher → Writer → Editor (looping until human approval).
 
 ## Social media workflow
 
-The `socialMediaWorkflow` turns an article link into a human-approved social media campaign.
+The `socialMediaWorkflow` takes the approved MDX from the article workflow and turns it into a human-approved social media campaign.
 
 ```mermaid
 flowchart TD
-    input["Input: articleUrl + platforms"] --> fetch["Fetch article"]
-    fetch --> strategy["Plan strategy (Strategist)"]
+    input["Input: mdx + platforms"] --> prepare["Prepare article from MDX"]
+    prepare --> strategy["Plan strategy (Strategist)"]
     strategy --> create["Create posts + image brief (Content Creator)"]
     create --> design["Design hero image (Graphic Designer)"]
     design --> preview["Preview and approve (suspend)"]
@@ -67,7 +67,7 @@ flowchart TD
 
 ### Steps
 
-1. **Read** — the article at the submitted URL is fetched and its readable text extracted.
+1. **Prepare** — parses the MDX title and content from the article workflow output.
 2. **Strategize** — the Strategist decides a publication strategy: a hook/angle, call to action, and timing guidance for each requested platform.
 3. **Create** — the Content Creator writes a platform-native post for every requested platform and a creative brief (subject, mood, composition) for the hero image.
 4. **Design** — the Graphic Designer executes that brief into one on-brand hero image, applying the fixed brand visual style in `src/mastra/config/visual-style.ts` regardless of the brief's wording.
@@ -76,7 +76,11 @@ flowchart TD
 
 ### Input and output
 
-**Input:** `{ articleUrl: string, platforms: string[] }` (see `SUPPORTED_PLATFORMS` in `src/mastra/config/platforms.ts`)
+**Input:** `{ mdx: string, platforms: string[], articleUrl?: string }` (see `SUPPORTED_PLATFORMS` in `src/mastra/config/platforms.ts`)
+
+- `mdx` — approved MDX from the article workflow
+- `platforms` — target social platforms
+- `articleUrl` (optional) — published URL for post CTAs and Dub link shortening
 
 **Output:** `{ published: boolean, reason?: string, results?: Array<{ platform, status, detail? }> }`
 
@@ -84,7 +88,7 @@ flowchart TD
 
 - **`BUFFER_API_KEY`** (see `.env.example`) — required to schedule posts. Without it, the workflow still runs through strategy, content creation, and preview, then ends with `published: false` at the approval step.
 - **`PUBLIC_BASE_URL`** — must be a publicly reachable URL for Buffer to fetch AI-generated images when publishing for real. Defaults to `http://localhost:4111`, which is fine for previewing drafts without publishing images.
-- **`DUB_API_KEY`** (optional) — the Content Creator shortens the article URL via [Dub's MCP server](https://dub.co) before writing posts. Without it, posts link directly to the full article URL.
+- **`DUB_API_KEY`** (optional) — when `articleUrl` is provided, the Content Creator shortens it via [Dub's MCP server](https://dub.co) before writing posts.
 
 ### Who this content is for
 

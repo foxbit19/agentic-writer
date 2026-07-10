@@ -76,7 +76,7 @@ Decides the publication strategy per platform — angle, call to action, and tim
 
 ### Content Creator (`openai/gpt-5`)
 
-Writes platform-native posts from the strategy and a creative brief for the hero image (handed off to the Graphic Designer rather than generating it itself); shortens the article URL via Dub's MCP server when `DUB_API_KEY` is set; also handles scheduling approved posts through Buffer's MCP server.
+Writes platform-native posts from the strategy and a creative brief for the hero image (handed off to the Graphic Designer rather than generating it itself); shortens an optional `articleUrl` via Dub's MCP server when `DUB_API_KEY` is set; also handles scheduling approved posts through Buffer's MCP server.
 
 > Personality: *You are a sharp, platform-native copywriter and visual thinker. You instinctively know that a LinkedIn post and a tweet are different species, and you never post the same generic text everywhere. You write like a person, not a press release, and you think concretely about what image would actually make someone stop scrolling.*
 
