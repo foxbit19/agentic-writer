@@ -1,29 +1,11 @@
 const DRAFT_REVISION_PREFIX = /^\[REV\.\s*\d+\]\s*/i;
 
-function formatRevisionNumber(draftNumber: number): string {
-  return String(draftNumber).padStart(3, '0');
-}
-
-/** Strips a workflow-added `[REV. NNN]` prefix from a display title. */
+/** Strips a legacy workflow-added `[REV. NNN]` prefix from a display title. */
 export function stripDraftRevisionPrefix(title: string): string {
   return title.replace(DRAFT_REVISION_PREFIX, '').trim();
 }
 
-/** Builds the revision label shown in draft H1 titles, e.g. `[REV. 001]`. */
-export function formatDraftRevisionLabel(draftNumber: number): string {
-  return `[REV. ${formatRevisionNumber(draftNumber)}]`;
-}
-
-/** Adds or updates the `[REV. NNN]` prefix on the article H1. */
-export function applyDraftRevisionToMarkdown(markdown: string, draftNumber: number): string {
-  const label = formatDraftRevisionLabel(draftNumber);
-  return markdown.replace(/^#\s+(.+)$/m, (_match, title: string) => {
-    const cleanTitle = stripDraftRevisionPrefix(title.trim());
-    return `# ${label} ${cleanTitle}`;
-  });
-}
-
-/** Removes the draft revision prefix from the H1 for approved output. */
+/** Removes a legacy draft revision prefix from the H1 (older drafts may still have it). */
 export function stripDraftRevisionFromMarkdown(markdown: string): string {
   return markdown.replace(/^#\s+(.+)$/m, (_match, title: string) => {
     const cleanTitle = stripDraftRevisionPrefix(title.trim());

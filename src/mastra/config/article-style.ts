@@ -9,19 +9,21 @@ export const articleStyle = {
   articleType:
     'Unless author notes explicitly request an opinion piece, review, or hot take, write an informative article: summarize and explain the source material for the reader. Do not substitute a personal evaluation framework, scoring rubric, or "criteria I\'ll use" checklist when notes asked for an informative article based on a link.',
   grounding:
-    'Never state facts, features, APIs, statistics, or quotes that are not supported by the research brief or author notes. When notes include source URL(s), the article must reflect only those sources — not general industry knowledge, reference architectures, or generic backend/security best practices the sources did not describe. Prefer a shorter, accurate article over a longer invented one.',
+    'Never state facts, features, APIs, statistics, or quotes that are not supported by the research brief, fetched sources, or claims already present in an author draft when one was provided. Author operating instructions (notes) name topics, sources, and constraints — they do not supply article claims to quote. Prefer a shorter, accurate article over a longer invented one.',
   thinSource:
     'If the research brief is thin or a source fetch failed, write a short honest article stating that. Do not pad with industry best practices, reference architectures, or evaluation frameworks the source did not contain.',
   sourceAttribution:
     'Attribute claims to the source: "OpenAI reports…", "the post says…", "according to the announcement". Never present benchmark numbers or product claims as your own findings.',
   sideQuestion:
-    'When notes include a side question (e.g. "is X beaten?"), weave it in naturally — often as a closing section. Do not paste note phrasing verbatim and do not restructure the article as a rubric for judging the industry.',
+    'When operating instructions include a side question (e.g. "is X beaten?"), weave it in naturally — often as a closing section. Do not paste instruction phrasing verbatim and do not restructure the article as a rubric for judging the industry.',
   notesIntegration:
-    'Integrate note intent into natural prose. Do not copy-paste note phrasing, especially question prefixes or meta-instructions (e.g. "Interesting question: …").',
+    'Author notes are operating instructions only — never article body. Do not paste or lightly paraphrase meta-goals (e.g. "The idea of this article is…"), outline stubs, rough definitions, or other instruction phrasing into the article. Execute the intent in natural prose grounded in the research brief (and author draft when provided).',
+  authorDraft:
+    'When an author draft is provided, develop and polish that prose as the starting point. Preserve the author\'s substance and wording unless operating instructions or revision guidance say otherwise. Do not discard the draft to invent a parallel article from scratch.',
   researchBrief:
     'Do not mirror the research brief\'s outline structure. Translate topics into prose-first sections.',
   personalContent:
-    'Preserve and foreground any "personal content to preserve" the Researcher flagged (anecdotes, opinions, first-hand experience) in the author\'s own voice — don\'t flatten it into generic prose.',
+    'Preserve personal material only when operating instructions explicitly ask to include an anecdote or opinion, or when that personal voice is already present in an author draft. Do not treat outline-ish note text as personal content to weave in.',
   opening:
     'Opening 1–2 paragraphs: what the source covers, why it matters, and the main thread — grounded in concrete detail from the research. Lead with substance from the source, not meta-framing. Say you could not access the post only when the brief confirms fetch failure. Orient without empty hype, clickbait, or a lecturing tone.',
   sectionHeadings:
@@ -51,6 +53,7 @@ export function formatArticleStyle(): string {
 - Source attribution: ${articleStyle.sourceAttribution}
 - Side question: ${articleStyle.sideQuestion}
 - Notes integration: ${articleStyle.notesIntegration}
+- Author draft: ${articleStyle.authorDraft}
 - Research brief: ${articleStyle.researchBrief}
 - Personal content: ${articleStyle.personalContent}
 - Opening: ${articleStyle.opening}
@@ -69,7 +72,8 @@ export function formatEditorReviewRules(): string {
 - Reject arrogant/evaluative framing (see Title, Voice, Article type, Section headings).
 - Reject bullet-heavy or rubric-shaped drafts (see Structure, Flow).
 - Reject unattributed vendor claims (see Source attribution).
-- Reject pasted note phrasing (see Notes integration).
+- Reject pasted or lightly paraphrased operating instructions (see Notes integration).
+- When an author draft was provided, flag ignoring or inventing over it without cause (see Author draft).
 - Flag excessive length (see Length).
 - Flag fenced code when notes did not request it (see Code).
 - Flag missing or excessive inline Markdown (see Markdown).`;

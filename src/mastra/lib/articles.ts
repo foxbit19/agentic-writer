@@ -119,12 +119,16 @@ function migrateWorkspaceMdxToMdSync(articleId: string): void {
 export async function initArticleWorkspace(
   runId: string,
   notes: string,
+  authorDraft?: string,
 ): Promise<{ articleId: string }> {
   const shortId = createShortId();
   const articleId = `untitled_${shortId}`;
 
   await mkdir(draftsDir(articleId), { recursive: true });
   await writeFile(path.join(articleDir(articleId), 'notes.md'), notes, 'utf8');
+  if (authorDraft?.trim()) {
+    await writeFile(path.join(articleDir(articleId), 'author-draft.md'), authorDraft, 'utf8');
+  }
 
   const now = new Date().toISOString();
   const manifest: ArticleManifest = {

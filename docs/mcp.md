@@ -43,7 +43,7 @@ Approval uses the same LibSQL workflow storage as Studio, so start/resume only w
 
 | Tool | Input | Notes |
 |------|-------|--------|
-| `start_article_workflow` | `{ notes }` | Blocks until first human-approval suspend (or completion). Can take several minutes. |
+| `start_article_workflow` | `{ notes, authorDraft? }` | `notes` = operating instructions; optional `authorDraft` = prose to develop. Blocks until first human-approval suspend (or completion). Can take several minutes. |
 | `list_articles` | `{ status? }` | All workspaces; optional `in_progress` / `awaiting_review` / `approved` filter. |
 | `get_article` | `{ articleId }` | Manifest + `approved.md` when present. |
 | `get_article_drafts` | `{ articleId }` | Numbered drafts with editor reviews and human notes. |
@@ -56,7 +56,7 @@ Approval uses the same LibSQL workflow storage as Studio, so start/resume only w
 
 ## Typical flow
 
-1. `start_article_workflow` with notes → returns `suspended` + draft/editor review in `suspendPayload`.
+1. `start_article_workflow` with notes (and optional authorDraft) → returns `suspended` + draft/editor review in `suspendPayload`.
 2. Inspect with `get_article_drafts` / `get_article_status` if needed.
 3. `approve_draft` or `reject_draft` (reject loops until approve).
 4. `start_social_media_workflow` with platforms.

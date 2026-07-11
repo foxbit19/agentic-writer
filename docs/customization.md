@@ -28,7 +28,8 @@ Approved Markdown from the article workflow is written to `data/articles/` (giti
 data/articles/
   gpt_5_6_sol_what_actually_matters_a0b2b143/
     article.json              # id, runId, status, currentDraft, title, timestamps
-    notes.md                  # original input
+    notes.md                  # operating instructions (not article body)
+    author-draft.md           # optional; author prose/outline to develop
     research-brief.md         # researcher output
     drafts/
       001.md

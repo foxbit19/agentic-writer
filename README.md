@@ -1,6 +1,6 @@
 # Agentic writer
 
-Agentic writer is a Mastra-powered content pipeline: write an article from notes, then generate social posts — with human approval on articles before promotion.
+Agentic writer is a Mastra-powered content pipeline: write an article from operating instructions (and an optional author draft), then generate social posts — with human approval on articles before promotion.
 
 ```mermaid
 flowchart LR
@@ -42,7 +42,7 @@ Start the development server:
 npm run dev
 ```
 
-Open [http://localhost:4111](http://localhost:4111) in Studio: run `articleWorkflow` with your notes, then `socialMediaWorkflow` — pick a saved article from the dropdown and choose target platforms.
+Open [http://localhost:4111](http://localhost:4111) in Studio: run `articleWorkflow` with your notes (and optional author draft), then `socialMediaWorkflow` — pick a saved article from the dropdown and choose target platforms.
 
 Or drive the same pipelines from an MCP client while the server is running — see [docs/mcp.md](docs/mcp.md) (`http://localhost:4111/api/mcp/agentic-writer/mcp`).
 
@@ -52,7 +52,7 @@ You can start editing files inside the `src/mastra` directory. The development s
 
 | Workflow | Description |
 |----------|-------------|
-| Article workflow | Turns raw author notes into a researched, written, and human-approved Markdown article. |
+| Article workflow | Turns author operating instructions (and an optional author draft) into a researched, written, and human-approved Markdown article. |
 | Social media workflow | Turns the approved Markdown article into platform-native posts and a hero image, saved to disk under the article folder. |
 
 See [docs/workflows.md](docs/workflows.md) for steps, inputs/outputs, and integration details.
@@ -67,9 +67,9 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 
 | Agent | Model | Description |
 |-------|-------|-------------|
-| Researcher | `openai/gpt-5-mini` | Extracts topics from author notes; when notes include URLs, fetches those sources only; otherwise searches the web. Produces a research brief for the Writer. |
-| Writer | `openai/gpt-5` | Drafts and revises the article as Markdown from the research brief, notes, and editorial feedback. |
-| Editor | `openai/gpt-4.1-mini` | Reviews each draft against the notes and research brief, and recommends approval or another writing pass. |
+| Researcher | `openai/gpt-5-mini` | Extracts topics from operating instructions; when instructions include URLs, fetches those sources only; otherwise searches the web. Produces a research brief for the Writer. |
+| Writer | `openai/gpt-5` | Drafts and revises the article from the research brief and instructions; develops an optional author draft. |
+| Editor | `openai/gpt-4.1-mini` | Reviews each draft against instruction intent, research, and optional author draft; recommends approval or another writing pass. |
 | Strategist | `openai/gpt-5-nano` | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |
 | Content Creator | `openai/gpt-5-mini` | Writes platform-native posts from the article and a creative brief for the hero image; optionally shortens a publish URL via Dub. |
 | Graphic Designer | `openai/gpt-4.1-nano` | Executes the Content Creator's creative brief into one on-brand hero image. |

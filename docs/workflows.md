@@ -11,11 +11,11 @@ You can also start and resume these workflows (and read articles/campaigns) via 
 
 ## Article workflow
 
-The `articleWorkflow` turns raw author notes into a human-approved Markdown article.
+The `articleWorkflow` turns author operating instructions (`notes`) and an optional author draft into a human-approved Markdown article.
 
 ```mermaid
 flowchart TD
-    input["Input: notes"] --> research["Research topics (Researcher)"]
+    input["Input: notes + optional authorDraft"] --> research["Research topics (Researcher)"]
     research --> draftLoop
 
     subgraph draftLoop ["Draft review loop (until approved)"]
@@ -23,7 +23,7 @@ flowchart TD
         review["Review draft (Editor)"]
         approve["Human approval (suspend)"]
         write --> review --> approve
-        approve -->|"rejected + notes"| write
+        approve -->|"rejected + guidance notes"| write
     end
 
     finalize --> output["Save workspace to data/articles/"]
@@ -32,11 +32,11 @@ flowchart TD
 
 ### Steps
 
-1. **Research** — if the notes contain URLs, the workflow fetches each page and the Researcher summarizes only that material (no web search). Otherwise the Researcher extracts topics and researches them online (including social media/forums).
-2. **Write** — the Writer drafts the article as Markdown from the research brief.
-3. **Review** — the Editor reviews the draft against the notes and research.
-4. **Approve** — the workflow suspends for human approval; the human approves or rejects with additional notes.
-5. Steps 2–4 repeat, feeding the editor's review and the human's notes back to the Writer, until the human approves.
+1. **Research** — if the operating instructions contain URLs, the workflow fetches each page and the Researcher summarizes only that material (no web search). Otherwise the Researcher extracts topics from the instructions and researches them online (including social media/forums). Notes are treated as instructions, not article body.
+2. **Write** — the Writer drafts the article as Markdown from the research brief, following the operating instructions. When `authorDraft` is provided, that prose is the starting point to develop.
+3. **Review** — the Editor reviews the draft against instruction intent, research, and (when present) the author draft.
+4. **Approve** — the workflow suspends for human approval; the human approves or rejects with additional operating instructions.
+5. Steps 2–4 repeat, feeding the editor's review and the human's guidance back to the Writer, until the human approves.
 6. The approved draft is saved as `approved.md` inside a per-run article folder under `data/articles/`, with numbered drafts and editor reviews preserved in `drafts/`. Resume suspended runs in Studio to continue reviewing an in-progress article later.
 
 ### Article workspace
@@ -45,8 +45,8 @@ Each workflow run creates a folder (snake_case title + short id). Files are writ
 
 | When | Written |
 |------|---------|
-| Research done | `notes.md`, `research-brief.md`, `article.json` |
-| Writer done | `drafts/00N.md` (H1 prefixed with `[REV. 00N]`; stripped on approval) |
+| Research done | `notes.md`, `author-draft.md` (only if provided), `research-brief.md`, `article.json` |
+| Writer done | `drafts/00N.md` (clean H1; revision via filename and `article.json` `currentDraft`) |
 | Editor done | `drafts/00N.editor-review.md` |
 | Human rejects | `drafts/00N.human-notes.md`, status → `in_progress` |
 | Human approves | `approved.md`, status → `approved` |
@@ -55,7 +55,10 @@ While status is `awaiting_review`, resume the suspended workflow run in Studio. 
 
 ### Input and output
 
-**Input:** `{ notes: string }`
+**Input:** `{ notes: string, authorDraft?: string }`
+
+- `notes` — operating instructions (article type, topics, sources/URLs, constraints). Never article body.
+- `authorDraft` — optional author-written prose or outline that belongs in the article.
 
 **Output:** `{ markdown: string, articleId: string, title: string }`
 

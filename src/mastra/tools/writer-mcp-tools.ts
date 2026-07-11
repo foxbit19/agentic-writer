@@ -96,9 +96,20 @@ function summarizeSocialRun(result: WorkflowRunResult, runId: string) {
 export const startArticleWorkflowTool = createTool({
   id: 'start_article_workflow',
   description:
-    'Start the article workflow from raw author notes. Blocks until the first human-approval suspend (after research, write, and editor review) or until the run completes. Can take several minutes.',
+    'Start the article workflow from author operating instructions (notes) and an optional author draft. Blocks until the first human-approval suspend (after research, write, and editor review) or until the run completes. Can take several minutes.',
   inputSchema: z.object({
-    notes: z.string().min(1).describe('Raw author notes to write the article from'),
+    notes: z
+      .string()
+      .min(1)
+      .describe(
+        'Author operating instructions: article type, topics, sources/URLs, constraints — not article body',
+      ),
+    authorDraft: z
+      .string()
+      .optional()
+      .describe(
+        'Optional author-written prose or outline that belongs in the article; the Writer develops this rather than inventing from scratch',
+      ),
   }),
   outputSchema: z.object({
     runId: z.string(),
@@ -114,11 +125,13 @@ export const startArticleWorkflowTool = createTool({
       .nullable(),
     error: z.string().nullable(),
   }),
-  execute: async ({ notes }, context) => {
+  execute: async ({ notes, authorDraft }, context) => {
     const mastra = requireMastra(context?.mastra);
     const workflow = mastra.getWorkflow('articleWorkflow');
     const run = await workflow.createRun();
-    const result = await run.start({ inputData: { notes } });
+    const result = await run.start({
+      inputData: { notes, ...(authorDraft?.trim() ? { authorDraft } : {}) },
+    });
     return summarizeArticleRun(result, run.runId);
   },
 });
