@@ -343,6 +343,100 @@ export async function migrateLegacyArticlesIfNeeded(): Promise<void> {
   migrateLegacyArticlesSync();
 }
 
+export interface ArticleDraft {
+  draftNumber: number;
+  markdown: string;
+  editorReview: string | null;
+  humanNotes: string | null;
+}
+
+export async function getArticleManifest(articleId: string): Promise<ArticleManifest> {
+  await migrateLegacyArticlesIfNeeded();
+  if (!isArticleWorkspaceDir(articleId)) {
+    throw new Error(`Article "${articleId}" not found`);
+  }
+  return readManifest(articleId);
+}
+
+export async function listAllArticles(
+  status?: ArticleStatus,
+): Promise<ArticleManifest[]> {
+  await migrateLegacyArticlesIfNeeded();
+
+  let entries: string[];
+  try {
+    entries = await readdir(ARTICLES_DIR);
+  } catch {
+    return [];
+  }
+
+  const articles = await Promise.all(
+    entries
+      .filter((entry) => isArticleWorkspaceDir(entry))
+      .map(async (entry) => readManifest(entry)),
+  );
+
+  const filtered = status ? articles.filter((a) => a.status === status) : articles;
+  return filtered.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export async function listArticleDrafts(articleId: string): Promise<ArticleDraft[]> {
+  await migrateLegacyArticlesIfNeeded();
+  if (!isArticleWorkspaceDir(articleId)) {
+    throw new Error(`Article "${articleId}" not found`);
+  }
+
+  const dir = draftsDir(articleId);
+  if (!existsSync(dir)) return [];
+
+  const entries = await readdir(dir);
+  const draftNumbers = [
+    ...new Set(
+      entries
+        .map((entry) => {
+          const match = /^(\d{3})\.md$/.exec(entry);
+          return match ? Number(match[1]) : null;
+        })
+        .filter((n): n is number => n !== null),
+    ),
+  ].sort((a, b) => a - b);
+
+  return Promise.all(
+    draftNumbers.map(async (draftNumber) => {
+      const prefix = formatDraftNumber(draftNumber);
+      const markdown = await readFile(path.join(dir, `${prefix}.md`), 'utf8');
+
+      let editorReview: string | null = null;
+      const reviewPath = path.join(dir, `${prefix}.editor-review.md`);
+      if (existsSync(reviewPath)) {
+        editorReview = await readFile(reviewPath, 'utf8');
+      }
+
+      let humanNotes: string | null = null;
+      const notesPath = path.join(dir, `${prefix}.human-notes.md`);
+      if (existsSync(notesPath)) {
+        humanNotes = await readFile(notesPath, 'utf8');
+      }
+
+      return { draftNumber, markdown, editorReview, humanNotes };
+    }),
+  );
+}
+
+export async function getArticleDetail(articleId: string): Promise<{
+  manifest: ArticleManifest;
+  approvedMarkdown: string | null;
+}> {
+  const manifest = await getArticleManifest(articleId);
+  let approvedMarkdown: string | null = null;
+  try {
+    approvedMarkdown = await readApprovedMarkdown(articleId);
+  } catch {
+    approvedMarkdown = null;
+  }
+  return { manifest, approvedMarkdown };
+}
+
 export async function listSavedArticles(): Promise<Array<{ id: string; title: string }>> {
   await migrateLegacyArticlesIfNeeded();
 

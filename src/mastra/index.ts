@@ -16,12 +16,14 @@ import { editorAgent } from './agents/editor-agent';
 import { strategistAgent } from './agents/strategist-agent';
 import { contentCreatorAgent } from './agents/content-creator-agent';
 import { graphicDesignerAgent } from './agents/graphic-designer-agent';
+import { writerMcpServer } from './mcp/writer-mcp-server';
 import { HERO_IMAGE_FILENAME } from './lib/social-campaigns';
 import { ARTICLES_DIR, GENERATED_IMAGES_DIR } from './lib/paths';
 
 export const mastra = new Mastra({
   workflows: { articleWorkflow, socialMediaWorkflow },
   agents: { researcherAgent, writerAgent, editorAgent, strategistAgent, contentCreatorAgent, graphicDesignerAgent },
+  mcpServers: { writerMcpServer },
   storage: new MastraCompositeStore({
     id: 'composite-storage',
     default: new LibSQLStore({

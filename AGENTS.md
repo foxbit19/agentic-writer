@@ -11,12 +11,13 @@ Load the `update-docs` skill after code changes and update affected docs when ne
 - `README.md` — project overview, workflows, setup
 - `docs/agents.md` — detailed agent reference
 - `docs/workflows.md` — detailed workflow reference
+- `docs/mcp.md` — MCP server endpoint and tools
 - `docs/customization.md` — local profile and article storage
 - `docs/observability-memory-and-token-limiter.md` — observability, observational memory, token limiter
 
 ## Rules
 
-- Register all agents, tools, workflows, and scorers in `src/mastra/index.ts`
+- Register all agents, tools, workflows, scorers, and MCP servers in `src/mastra/index.ts`
 - Use the `dev` and `build` scripts from `package.json` instead of running `mastra dev` / `mastra build` directly
 
 ## Resources

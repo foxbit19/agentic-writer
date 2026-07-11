@@ -2,6 +2,8 @@
 
 Two Mastra workflows orchestrate the agents. Run the article workflow first, then feed its Markdown output into the social media workflow. Source files live in `src/mastra/workflows/`.
 
+You can also start and resume these workflows (and read articles/campaigns) via the MCP server — see [mcp.md](mcp.md).
+
 | Workflow | ID | Source |
 |----------|-----|--------|
 | Article workflow | `article-workflow` | `src/mastra/workflows/article-workflow.ts` |

@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { z } from 'zod';
 import { platformSchema } from '../config/platforms';
@@ -114,6 +114,138 @@ ${hashtags}---
 
 ${post.text}
 `;
+}
+
+export interface CampaignSummary {
+  campaignId: string;
+  articleId: string;
+  platforms: string[];
+  savedAt: string | null;
+  imageUrl: string | null;
+  campaignDir: string;
+}
+
+export interface CampaignPostFile {
+  platform: string;
+  markdown: string;
+}
+
+export interface CampaignDetail {
+  campaignId: string;
+  articleId: string;
+  campaignDir: string;
+  platforms: string[];
+  savedAt: string | null;
+  strategy: string | null;
+  imageBrief: string | null;
+  posts: CampaignPostFile[];
+  heroImage: {
+    filename: string;
+    url: string | null;
+    altText: string | null;
+    path: string | null;
+  };
+}
+
+export async function listCampaigns(articleId: string): Promise<CampaignSummary[]> {
+  const socialDir = path.join(articleDir(articleId), 'social');
+  if (!existsSync(socialDir)) return [];
+
+  const entries = await readdir(socialDir);
+  const campaigns: CampaignSummary[] = [];
+
+  for (const entry of entries) {
+    const campaignJsonPath = path.join(socialDir, entry, 'campaign.json');
+    if (!existsSync(campaignJsonPath)) continue;
+
+    const raw = JSON.parse(await readFile(campaignJsonPath, 'utf8')) as {
+      campaignId?: string;
+      articleId?: string;
+      platforms?: string[];
+      savedAt?: string;
+      imageUrl?: string | null;
+    };
+
+    campaigns.push({
+      campaignId: raw.campaignId ?? entry,
+      articleId: raw.articleId ?? articleId,
+      platforms: raw.platforms ?? [],
+      savedAt: raw.savedAt ?? null,
+      imageUrl: raw.imageUrl ?? null,
+      campaignDir: getCampaignDir(articleId, entry),
+    });
+  }
+
+  return campaigns.sort((a, b) => (b.savedAt ?? '').localeCompare(a.savedAt ?? ''));
+}
+
+export async function readCampaign(
+  articleId: string,
+  campaignId: string,
+): Promise<CampaignDetail> {
+  const campaignDir = getCampaignDir(articleId, campaignId);
+  const campaignJsonPath = path.join(campaignDir, 'campaign.json');
+  if (!existsSync(campaignJsonPath)) {
+    throw new Error(`Campaign "${campaignId}" not found for article "${articleId}"`);
+  }
+
+  const campaignJson = JSON.parse(await readFile(campaignJsonPath, 'utf8')) as {
+    campaignId?: string;
+    articleId?: string;
+    platforms?: string[];
+    savedAt?: string;
+    imageUrl?: string | null;
+  };
+
+  let strategy: string | null = null;
+  const strategyPath = path.join(campaignDir, 'strategy.md');
+  if (existsSync(strategyPath)) {
+    strategy = await readFile(strategyPath, 'utf8');
+  }
+
+  let imageBrief: string | null = null;
+  const imageBriefPath = path.join(campaignDir, 'image-brief.md');
+  if (existsSync(imageBriefPath)) {
+    imageBrief = await readFile(imageBriefPath, 'utf8');
+  }
+
+  const posts: CampaignPostFile[] = [];
+  const postsDir = path.join(campaignDir, 'posts');
+  if (existsSync(postsDir)) {
+    const postFiles = await readdir(postsDir);
+    for (const file of postFiles.filter((f) => f.endsWith('.md')).sort()) {
+      posts.push({
+        platform: file.replace(/\.md$/, ''),
+        markdown: await readFile(path.join(postsDir, file), 'utf8'),
+      });
+    }
+  }
+
+  let heroMeta: { filename?: string; url?: string | null; altText?: string | null } = {};
+  const heroJsonPath = path.join(campaignDir, 'hero-image.json');
+  if (existsSync(heroJsonPath)) {
+    heroMeta = JSON.parse(await readFile(heroJsonPath, 'utf8')) as typeof heroMeta;
+  }
+
+  const heroPath = path.join(campaignDir, HERO_IMAGE_FILENAME);
+  const heroExists = existsSync(heroPath);
+
+  return {
+    campaignId: campaignJson.campaignId ?? campaignId,
+    articleId: campaignJson.articleId ?? articleId,
+    campaignDir,
+    platforms: campaignJson.platforms ?? [],
+    savedAt: campaignJson.savedAt ?? null,
+    strategy,
+    imageBrief,
+    posts,
+    heroImage: {
+      filename: heroMeta.filename ?? HERO_IMAGE_FILENAME,
+      url: heroMeta.url ?? campaignJson.imageUrl ?? null,
+      altText: heroMeta.altText ?? null,
+      path: heroExists ? heroPath : null,
+    },
+  };
 }
 
 export async function saveSocialCampaign(

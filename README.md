@@ -10,6 +10,8 @@ flowchart LR
     style social fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d
 ```
 
+> **Cost disclaimer:** I am not responsible for unexpected costs when using these agents and workflows.
+
 ## Getting Started
 
 Set your OpenAI key in `.env`:
@@ -21,7 +23,7 @@ cp .env.example .env
 
 > Models are tiered for cost vs quality in `src/mastra/config/models.ts`. Override any agent via env for A/B testing — see [docs/agents.md#ab-testing-model-overrides](docs/agents.md#ab-testing-model-overrides).
 >
-> **Cost disclaimer:** I am not responsible for unexpected costs when using these agents.
+
 
 Customize the pipeline for yourself (gitignored, local only):
 
@@ -42,6 +44,8 @@ npm run dev
 
 Open [http://localhost:4111](http://localhost:4111) in Studio: run `articleWorkflow` with your notes, then `socialMediaWorkflow` — pick a saved article from the dropdown and choose target platforms.
 
+Or drive the same pipelines from an MCP client while the server is running — see [docs/mcp.md](docs/mcp.md) (`http://localhost:4111/api/mcp/agentic-writer/mcp`).
+
 You can start editing files inside the `src/mastra` directory. The development server will automatically reload whenever you make changes.
 
 ## Workflows
@@ -52,6 +56,10 @@ You can start editing files inside the `src/mastra` directory. The development s
 | Social media workflow | Turns the approved Markdown article into platform-native posts and a hero image, saved to disk under the article folder. |
 
 See [docs/workflows.md](docs/workflows.md) for steps, inputs/outputs, and integration details.
+
+## MCP
+
+While `npm run dev` is running, an MCP server exposes start/list/approve tools for articles and social campaigns at `http://localhost:4111/api/mcp/agentic-writer/mcp`. See [docs/mcp.md](docs/mcp.md).
 
 ## Agents
 
