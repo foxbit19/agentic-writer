@@ -25,19 +25,24 @@ All content and formatting rules for article drafts are centralized in [`src/mas
 |-----|---------|
 | `title` | Plain informative H1; no evaluative or verdict framing |
 | `voice` | First person, humble, evidence-led |
+| `audience` | Write for the profile's target readers; assume their baseline knowledge |
+| `tone` | Semi-formal, read-aloud test; wit only on light topics |
 | `articleType` | Informative summary by default; not rubrics or hot takes |
 | `grounding` | Facts from research/sources (and author draft when provided); notes are not a fact source |
 | `thinSource` | Short honest article when source is thin or fetch failed |
-| `sourceAttribution` | Vendor claims attributed to the source |
+| `sourceAttribution` | Vendor claims attributed to the source; at most one or two short quotes |
+| `balance` | Contested topics show contrasting viewpoints, attributed; reader decides |
 | `sideQuestion` | Side questions woven in naturally, not as article spine |
 | `notesIntegration` | Notes are operating instructions only — never pasted as article body |
 | `authorDraft` | When provided, develop that prose; do not invent over it without cause |
 | `researchBrief` | Do not mirror brief outline; translate to prose sections |
 | `personalContent` | Only when instructions explicitly ask, or already in author draft |
-| `opening` | 1–2 paragraphs grounded in source substance |
-| `sectionHeadings` | Topic names, not evaluation frameworks |
+| `opening` | 1–2 paragraphs grounded in source substance; at most one question as hook |
+| `closing` | Draw threads together; one clear impression; no "In conclusion" |
+| `sectionHeadings` | Topic names, not evaluation frameworks; mini headlines, used sparingly |
 | `structure` | Prose-first; at most two short lists per article |
-| `flow` | Essay continuity; no reorderable rubric blocks |
+| `flow` | Essay continuity with explicit linking words; no reorderable rubric blocks |
+| `sentenceVariety` | Varied sentence shape and length; no stock AI phrasing |
 | `length` | ~600–1,200 words for single-link articles; up to ~1,500 default |
 | `prose` | No em dashes or ` - ` clause separators |
 | `markdown` | Inline **bold**, *italic*, `` `code` `` in body prose |
@@ -122,7 +127,7 @@ Drafts and revises the article as Markdown from the research brief, following op
 > - On revision passes, integrate all feedback into the draft — don't tack on changes.
 > - Output only the Markdown article content, with no commentary before or after it.
 >
-> Personality: *You write informative summaries and explainers — not hot takes, verdicts, or "how I'll judge X" rubrics.*
+> Personality: *You write informative summaries and explainers — not hot takes, verdicts, or "how I'll judge X" rubrics. Semi-formal register, varied sentence rhythm, an ending that lands; where sources disagree, show the disagreement and let the reader decide.*
 
 ### Editor (`openai/gpt-4.1-mini`)
 
@@ -139,7 +144,7 @@ Reviews each draft against operating-instruction intent, the research brief, and
 >
 > Review checklist (`formatEditorReviewRules()`): reject invented content, evaluative framing, bullet/rubric-shaped drafts, unattributed vendor claims, pasted operating instructions; flag ignoring an author draft without cause, excessive length, unsolicited fenced code, and missing/excessive inline Markdown.
 >
-> Personality: *You are a rigorous but constructive editor who enforces the project's article style guide, not just grammar. You are direct about what's wrong, specific about how to fix it, and generous in acknowledging what already works. You never rubber-stamp a draft that breaks a mandatory style rule or isn't ready for the human author.*
+> Personality: *You are a rigorous but constructive editor who enforces the project's article style guide, not just grammar. You read for the target reader: right assumed knowledge, semi-formal register, essay flow, an ending with a clear impression. You are direct about what's wrong, specific about how to fix it, and generous in acknowledging what already works. You never rubber-stamp a draft that breaks a mandatory style rule or isn't ready for the human author.*
 
 ## Social media workflow agents
 
