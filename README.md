@@ -71,7 +71,7 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 | Writer | `openai/gpt-5` | Drafts and revises the article from the research brief and instructions; develops an optional author draft. |
 | Editor | `openai/gpt-5-mini` | Reviews each draft against instruction intent, research, and optional author draft; recommends approval or another writing pass. |
 | Strategist | `openai/gpt-5-nano` | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |
-| Content Creator | `openai/gpt-5-mini` | Writes platform-native posts from the article and a creative brief for the hero image; optionally shortens a publish URL via Dub. |
+| Content Creator | `openai/gpt-5-mini` | Writes platform-native posts from the article and a creative brief for the hero image. |
 | Graphic Designer | `openai/gpt-4.1-nano` | Executes the Content Creator's creative brief into one on-brand hero image. |
 
 See [docs/agents.md](docs/agents.md) for models, tools, full instructions, and personality details.

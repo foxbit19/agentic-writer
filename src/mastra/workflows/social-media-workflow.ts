@@ -1,6 +1,6 @@
 import { createStep, createWorkflow } from '@mastra/core/workflows';
 import { z } from 'zod';
-import { getDubMcpClient } from '../tools/dub-mcp-client';
+import { shortenUrl } from '../lib/shorten-url';
 import { platformSchema } from '../config/platforms';
 import { workflowAgentMemory } from '../lib/workflow-memory';
 import { listSavedArticleIds, readSavedArticle } from '../lib/articles';
@@ -25,7 +25,7 @@ const socialMediaWorkflowInputSchema = z.object({
     .string()
     .url()
     .optional()
-    .describe('Optional published URL for post CTAs and Dub link shortening'),
+    .describe('Optional published URL for post CTAs; shortened via Dub when DUB_API_KEY is set'),
 });
 
 const postSchema = z.object({
@@ -59,7 +59,8 @@ const prepareArticleStep = createStep({
 
     return {
       articleId,
-      articleUrl,
+      // Shortened once here so every downstream agent only ever sees the final link.
+      articleUrl: articleUrl ? await shortenUrl(articleUrl) : undefined,
       platforms,
       articleTitle: title || saved.title,
       articleText: textContent,
@@ -88,7 +89,7 @@ const strategyStep = createStep({
       throw new Error('Strategist agent not found');
     }
 
-    const urlLine = articleUrl ? `Article URL: ${articleUrl}\n` : '';
+    const urlLine = articleUrl ? `Article URL (copy it exactly as given wherever a link belongs): ${articleUrl}\n` : '';
 
     const response = await strategist.generate(
       `Article title: ${articleTitle}\n${urlLine}\nArticle content:\n${articleText}\n\nTarget platforms: ${platforms.join(', ')}\n\nDecide the publication strategy for this article.`,
@@ -145,14 +146,12 @@ const createContentStep = createStep({
       throw new Error('Content Creator agent not found');
     }
 
-    const toolsets = process.env.DUB_API_KEY && articleUrl ? await getDubMcpClient().listToolsets() : undefined;
-    const urlLine = articleUrl ? `Article URL: ${articleUrl}\n` : '';
+    const urlLine = articleUrl ? `Article URL (copy it exactly as given wherever a link belongs): ${articleUrl}\n` : '';
 
     const response = await contentCreator.generate(
       `Article title: ${articleTitle}\n${urlLine}\nArticle content:\n${articleText}\n\nPublication strategy: ${strategySummary}\n\nPer-platform strategy:\n${JSON.stringify(platformStrategies, null, 2)}\n\nWrite the posts and the hero image creative brief now.`,
       {
         memory: workflowAgentMemory(runId, 'content-creator-agent', resourceId),
-        toolsets,
         structuredOutput: {
           schema: z.object({
             imageBrief: z

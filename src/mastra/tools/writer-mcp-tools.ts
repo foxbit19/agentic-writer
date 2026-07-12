@@ -358,7 +358,7 @@ export const startSocialMediaWorkflowTool = createTool({
       .string()
       .url()
       .optional()
-      .describe('Optional published URL for post CTAs and Dub link shortening'),
+      .describe('Optional published URL for post CTAs; shortened via Dub when DUB_API_KEY is set'),
   }),
   outputSchema: z.object({
     runId: z.string(),

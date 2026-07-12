@@ -96,14 +96,14 @@ flowchart TD
 
 - `articleId` — saved article from `data/articles/` (Studio dropdown; run the article workflow first)
 - `platforms` — target social platforms
-- `articleUrl` (optional) — published URL for post CTAs and Dub link shortening
+- `articleUrl` (optional) — published URL for post CTAs; shortened via Dub when `DUB_API_KEY` is set
 
 **Output:** `{ campaignId: string, campaignDir: string, posts: Array<{ platform, text, hashtags? }>, imageUrl?: string }`
 
 ### Environment and integrations
 
 - **`PUBLIC_BASE_URL`** — base URL for locally generated hero images. Defaults to `http://localhost:4111`.
-- **`DUB_API_KEY`** (optional) — when `articleUrl` is provided, the Content Creator shortens it via [Dub's MCP server](https://dub.co) before writing posts.
+- **`DUB_API_KEY`** (optional) — when `articleUrl` is provided, the `prepare-article` step shortens it deterministically via [Dub's](https://dub.co) link upsert API before the Strategist or Content Creator see it, so posts always carry the short link. On API failure the workflow falls back to the original URL.
 
 ### Who this content is for
 
