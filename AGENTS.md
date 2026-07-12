@@ -18,6 +18,7 @@ Load the `update-docs` skill after code changes and update affected docs when ne
 ## Rules
 
 - Always remove dead code (see `.agents/skills/remove-dead-code/SKILL.md`)
+- Always write a JSDoc comment for a function (see `.agents/skills/jsdoc-functions/SKILL.md`)
 - Register all agents, tools, workflows, scorers, and MCP servers in `src/mastra/index.ts`
 - Use the `dev` and `build` scripts from `package.json` instead of running `mastra dev` / `mastra build` directly
 
