@@ -4,9 +4,9 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 
 | Agent | Model | Workflow | Source |
 |-------|-------|----------|--------|
-| Researcher | `openai/gpt-5-mini` | Article | `src/mastra/agents/researcher-agent.ts` |
+| Researcher | `deepseek/deepseek-v4-flash` | Article | `src/mastra/agents/researcher-agent.ts` |
 | Writer | `openai/gpt-5` | Article | `src/mastra/agents/writer-agent.ts` |
-| Editor | `openai/gpt-4.1-mini` | Article | `src/mastra/agents/editor-agent.ts` |
+| Editor | `openai/gpt-5-mini` | Article | `src/mastra/agents/editor-agent.ts` |
 | Strategist | `openai/gpt-5-nano` | Social media | `src/mastra/agents/strategist-agent.ts` |
 | Content Creator | `openai/gpt-5-mini` | Social media | `src/mastra/agents/content-creator-agent.ts` |
 | Graphic Designer | `openai/gpt-4.1-nano` | Social media | `src/mastra/agents/graphic-designer-agent.ts` |
@@ -67,9 +67,9 @@ WRITER_MODEL=openai/gpt-5-mini
 
 | Env var | Agent / service | Default |
 |---------|-----------------|---------|
-| `RESEARCHER_MODEL` | Researcher | `openai/gpt-5-mini` |
+| `RESEARCHER_MODEL` | Researcher | `deepseek/deepseek-v4-flash` |
 | `WRITER_MODEL` | Writer | `openai/gpt-5` |
-| `EDITOR_MODEL` | Editor | `openai/gpt-4.1-mini` |
+| `EDITOR_MODEL` | Editor | `openai/gpt-5-mini` |
 | `STRATEGIST_MODEL` | Strategist | `openai/gpt-5-nano` |
 | `CONTENT_CREATOR_MODEL` | Content Creator | `openai/gpt-5-mini` |
 | `GRAPHIC_DESIGNER_MODEL` | Graphic Designer | `openai/gpt-4.1-nano` |
@@ -93,7 +93,7 @@ node .agents/skills/mastra/scripts/provider-registry.mjs --provider openai
 
 ## Article workflow agents
 
-### Researcher (`openai/gpt-5-mini`)
+### Researcher (`deepseek/deepseek-v4-flash`)
 
 When operating instructions include URLs, the workflow fetches each page (via `readArticle`) and the Researcher summarizes only that material — no web search. Otherwise, searches the web (via a DuckDuckGo-backed `web-search` tool) for topics found in the instructions. Notes are operating instructions, not article body. Produces a narrative research brief (not an article outline).
 
@@ -129,7 +129,7 @@ Drafts and revises the article as Markdown from the research brief, following op
 >
 > Personality: *You write informative summaries and explainers — not hot takes, verdicts, or "how I'll judge X" rubrics. Semi-formal register, varied sentence rhythm, an ending that lands; where sources disagree, show the disagreement and let the reader decide.*
 
-### Editor (`openai/gpt-4.1-mini`)
+### Editor (`openai/gpt-5-mini`)
 
 Reviews each draft against operating-instruction intent, the research brief, and (when present) the author draft. **Review process only** — enforcement rules come from `formatEditorReviewRules()` and full style rules from `formatArticleStyle()` in `article-style.ts`.
 

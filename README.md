@@ -14,11 +14,11 @@ flowchart LR
 
 ## Getting Started
 
-Set your OpenAI key in `.env`:
+Set your API keys in `.env`:
 
 ```shell
 cp .env.example .env
-# then edit .env and set OPENAI_API_KEY
+# then edit .env and set OPENAI_API_KEY and DEEPSEEK_API_KEY
 ```
 
 > Models are tiered for cost vs quality in `src/mastra/config/models.ts`. Override any agent via env for A/B testing — see [docs/agents.md#ab-testing-model-overrides](docs/agents.md#ab-testing-model-overrides).
@@ -67,9 +67,9 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 
 | Agent | Model | Description |
 |-------|-------|-------------|
-| Researcher | `openai/gpt-5-mini` | Extracts topics from operating instructions; when instructions include URLs, fetches those sources only; otherwise searches the web. Produces a research brief for the Writer. |
+| Researcher | `deepseek/deepseek-v4-flash` | Extracts topics from operating instructions; when instructions include URLs, fetches those sources only; otherwise searches the web. Produces a research brief for the Writer. |
 | Writer | `openai/gpt-5` | Drafts and revises the article from the research brief and instructions; develops an optional author draft. |
-| Editor | `openai/gpt-4.1-mini` | Reviews each draft against instruction intent, research, and optional author draft; recommends approval or another writing pass. |
+| Editor | `openai/gpt-5-mini` | Reviews each draft against instruction intent, research, and optional author draft; recommends approval or another writing pass. |
 | Strategist | `openai/gpt-5-nano` | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |
 | Content Creator | `openai/gpt-5-mini` | Writes platform-native posts from the article and a creative brief for the hero image; optionally shortens a publish URL via Dub. |
 | Graphic Designer | `openai/gpt-4.1-nano` | Executes the Content Creator's creative brief into one on-brand hero image. |

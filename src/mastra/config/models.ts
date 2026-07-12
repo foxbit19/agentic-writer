@@ -10,11 +10,11 @@ function modelFromEnv(envKey: string, fallback: string): string {
 /** Article workflow — keep frontier for long-form output quality. */
 export const WRITER_MODEL = modelFromEnv('WRITER_MODEL', 'openai/gpt-5');
 
-/** Multi-step tool use + synthesis; mini is the cost floor (not nano). */
-export const RESEARCHER_MODEL = modelFromEnv('RESEARCHER_MODEL', 'openai/gpt-5-mini');
+/** Multi-step tool use + synthesis; DeepSeek flash is the cost floor. */
+export const RESEARCHER_MODEL = modelFromEnv('RESEARCHER_MODEL', 'deepseek/deepseek-v4-flash');
 
 /** Rule enforcement; weak editor triggers expensive Writer loops. */
-export const EDITOR_MODEL = modelFromEnv('EDITOR_MODEL', 'openai/gpt-4.1-mini');
+export const EDITOR_MODEL = modelFromEnv('EDITOR_MODEL', 'openai/gpt-5-mini');
 
 /** Short structured JSON per platform — bounded, runs once. */
 export const STRATEGIST_MODEL = modelFromEnv('STRATEGIST_MODEL', 'openai/gpt-5-nano');
