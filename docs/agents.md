@@ -153,7 +153,7 @@ Decides the publication strategy per platform — angle, call to action, and tim
 
 ### Content Creator (`openai/gpt-5-mini`)
 
-Writes **short, platform-native teaser posts** from the strategy (not article recaps) and a creative brief for the hero image (handed off to the Graphic Designer rather than generating it itself); shortens an optional `articleUrl` via Dub's MCP server when `DUB_API_KEY` is set. The social workflow saves output to disk — Buffer scheduling is not used for now.
+Writes **short, platform-native teaser posts** from the strategy (not article recaps) and a creative brief for the hero image (handed off to the Graphic Designer rather than generating it itself); shortens an optional `articleUrl` via Dub's MCP server when `DUB_API_KEY` is set. The social workflow saves output to disk for manual review and publishing.
 
 > Personality: *You are a sharp, platform-native copywriter and visual thinker. You instinctively know that a LinkedIn post and a tweet are different species, and you never post the same generic text everywhere. You ruthlessly cut — every sentence must earn its place; you tease, you don't recap. You write like a person, not a press release, and you think concretely about what image would actually make someone stop scrolling.*
 

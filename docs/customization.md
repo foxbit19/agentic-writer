@@ -58,7 +58,7 @@ data/articles/{article_id}/social/{campaign_id}/
     twitter.md
 ```
 
-Review posts on disk and publish manually. Buffer integration is dormant for now.
+Review posts on disk and publish manually.
 
 ## Brand visuals
 

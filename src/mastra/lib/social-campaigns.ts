@@ -4,6 +4,7 @@ import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import type { z } from 'zod';
 import { platformSchema } from '../config/platforms';
+import { assertSafeArticleId, assertSafeCampaignId } from './ids';
 import { ARTICLES_DIR } from './paths';
 
 export type SocialPost = {
@@ -55,6 +56,8 @@ export function createCampaignId(runId: string): string {
 }
 
 export function getCampaignDir(articleId: string, campaignId: string): string {
+  assertSafeArticleId(articleId);
+  assertSafeCampaignId(campaignId);
   return path.join(articleDir(articleId), 'social', campaignId);
 }
 
@@ -72,6 +75,7 @@ export async function initSocialCampaignWorkspace(
   articleId: string,
   runId: string,
 ): Promise<{ campaignId: string; campaignDir: string }> {
+  assertSafeArticleId(articleId);
   assertArticleApproved(articleId);
 
   const campaignId = createCampaignId(runId);
@@ -148,6 +152,7 @@ export interface CampaignDetail {
 }
 
 export async function listCampaigns(articleId: string): Promise<CampaignSummary[]> {
+  assertSafeArticleId(articleId);
   const socialDir = path.join(articleDir(articleId), 'social');
   if (!existsSync(socialDir)) return [];
 
@@ -251,6 +256,8 @@ export async function readCampaign(
 export async function saveSocialCampaign(
   input: SaveSocialCampaignInput,
 ): Promise<SavedSocialCampaign> {
+  assertSafeArticleId(input.articleId);
+  assertSafeCampaignId(input.campaignId);
   assertArticleApproved(input.articleId);
 
   const { campaignId, campaignDir } = input;

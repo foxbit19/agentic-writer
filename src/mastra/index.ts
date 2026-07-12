@@ -18,6 +18,7 @@ import { contentCreatorAgent } from './agents/content-creator-agent';
 import { graphicDesignerAgent } from './agents/graphic-designer-agent';
 import { writerMcpServer } from './mcp/writer-mcp-server';
 import { HERO_IMAGE_FILENAME } from './lib/social-campaigns';
+import { isSafeArticleId, isSafeCampaignId } from './lib/ids';
 import { ARTICLES_DIR, GENERATED_IMAGES_DIR } from './lib/paths';
 
 export const mastra = new Mastra({
@@ -63,7 +64,7 @@ export const mastra = new Mastra({
         handler: async (c) => {
           const articleId = c.req.param('articleId');
           const campaignId = c.req.param('campaignId');
-          if (!/^[a-z0-9_]+$/i.test(articleId) || !/^[0-9TZ_-]+_[a-z0-9]+$/i.test(campaignId)) {
+          if (!isSafeArticleId(articleId) || !isSafeCampaignId(campaignId)) {
             return c.json({ error: 'Not found' }, 404);
           }
 

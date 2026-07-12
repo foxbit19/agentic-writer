@@ -8,9 +8,29 @@ import {
   listAllArticles,
   listArticleDrafts,
 } from '../lib/articles';
+import { ARTICLE_ID_PATTERN, CAMPAIGN_ID_PATTERN } from '../lib/ids';
 import { listCampaigns, readCampaign } from '../lib/social-campaigns';
 
+const articleIdSchema = z
+  .string()
+  .regex(ARTICLE_ID_PATTERN, 'Invalid article id')
+  .describe('Article workspace id');
+
+const campaignIdSchema = z
+  .string()
+  .regex(CAMPAIGN_ID_PATTERN, 'Invalid campaign id')
+  .describe('Campaign id under the article social/ folder');
+
 const articleStatusSchema = z.enum(['in_progress', 'awaiting_review', 'approved']);
+
+const articleWorkflowResultSchema = z
+  .object({
+    markdown: z.string().optional(),
+    articleId: z.string().optional(),
+    title: z.string().optional(),
+    completionReason: z.enum(['approved', 'max_iterations_reached']).optional(),
+  })
+  .nullable();
 
 const suspendPayloadSchema = z
   .object({
@@ -58,7 +78,12 @@ function summarizeArticleRun(result: WorkflowRunResult, runId: string) {
 
   const successResult =
     result.status === 'success' && result.result && typeof result.result === 'object'
-      ? (result.result as { markdown?: string; articleId?: string; title?: string })
+      ? (result.result as {
+          markdown?: string;
+          articleId?: string;
+          title?: string;
+          completionReason?: 'approved' | 'max_iterations_reached';
+        })
       : null;
 
   const articleId =
@@ -116,13 +141,7 @@ export const startArticleWorkflowTool = createTool({
     status: z.string(),
     articleId: z.string().nullable(),
     suspendPayload: suspendPayloadSchema,
-    result: z
-      .object({
-        markdown: z.string().optional(),
-        articleId: z.string().optional(),
-        title: z.string().optional(),
-      })
-      .nullable(),
+    result: articleWorkflowResultSchema,
     error: z.string().nullable(),
   }),
   execute: async ({ notes, authorDraft }, context) => {
@@ -169,7 +188,7 @@ export const getArticleTool = createTool({
   description:
     'Get an article manifest and approved Markdown (when present) by article id.',
   inputSchema: z.object({
-    articleId: z.string().describe('Article workspace id'),
+    articleId: articleIdSchema,
   }),
   outputSchema: z.object({
     manifest: z.object({
@@ -193,7 +212,7 @@ export const getArticleDraftsTool = createTool({
   description:
     'List numbered drafts for an article, including editor reviews and human rejection notes when present.',
   inputSchema: z.object({
-    articleId: z.string().describe('Article workspace id'),
+    articleId: articleIdSchema,
   }),
   outputSchema: z.object({
     drafts: z.array(
@@ -216,7 +235,7 @@ export const getArticleStatusTool = createTool({
   description:
     'Get article writing status from article.json and, when possible, the Mastra workflow run status for the stored runId.',
   inputSchema: z.object({
-    articleId: z.string().describe('Article workspace id'),
+    articleId: articleIdSchema,
   }),
   outputSchema: z.object({
     articleId: z.string(),
@@ -259,7 +278,7 @@ export const approveDraftTool = createTool({
   description:
     'Approve the current draft for an article awaiting review. Resumes the suspended article workflow run. May finalize the article or return the next suspend state.',
   inputSchema: z.object({
-    articleId: z.string().describe('Article workspace id'),
+    articleId: articleIdSchema,
     notes: z
       .string()
       .optional()
@@ -270,13 +289,7 @@ export const approveDraftTool = createTool({
     status: z.string(),
     articleId: z.string().nullable(),
     suspendPayload: suspendPayloadSchema,
-    result: z
-      .object({
-        markdown: z.string().optional(),
-        articleId: z.string().optional(),
-        title: z.string().optional(),
-      })
-      .nullable(),
+    result: articleWorkflowResultSchema,
     error: z.string().nullable(),
   }),
   execute: async ({ articleId, notes }, context) => {
@@ -302,7 +315,7 @@ export const rejectDraftTool = createTool({
   description:
     'Reject the current draft with guidance notes. Resumes the suspended article workflow so the Writer revises. Blocks until the next approval suspend or completion.',
   inputSchema: z.object({
-    articleId: z.string().describe('Article workspace id'),
+    articleId: articleIdSchema,
     notes: z.string().min(1).describe('Guidance for the Writer on what to change'),
   }),
   outputSchema: z.object({
@@ -310,13 +323,7 @@ export const rejectDraftTool = createTool({
     status: z.string(),
     articleId: z.string().nullable(),
     suspendPayload: suspendPayloadSchema,
-    result: z
-      .object({
-        markdown: z.string().optional(),
-        articleId: z.string().optional(),
-        title: z.string().optional(),
-      })
-      .nullable(),
+    result: articleWorkflowResultSchema,
     error: z.string().nullable(),
   }),
   execute: async ({ articleId, notes }, context) => {
@@ -342,7 +349,7 @@ export const startSocialMediaWorkflowTool = createTool({
   description:
     'Start the social media workflow for an approved article. Blocks until the campaign (posts + hero image) is saved to disk.',
   inputSchema: z.object({
-    articleId: z.string().describe('Approved article workspace id'),
+    articleId: articleIdSchema.describe('Approved article workspace id'),
     platforms: z
       .array(platformSchema)
       .min(1)
@@ -381,7 +388,7 @@ export const listSocialCampaignsTool = createTool({
   id: 'list_social_campaigns',
   description: 'List social campaigns saved under an article folder.',
   inputSchema: z.object({
-    articleId: z.string().describe('Article workspace id'),
+    articleId: articleIdSchema,
   }),
   outputSchema: z.object({
     campaigns: z.array(
@@ -406,8 +413,8 @@ export const getSocialCampaignTool = createTool({
   description:
     'Get a social campaign: posts, publication strategy (including timing / best-time guidance), and hero image metadata/URL/path.',
   inputSchema: z.object({
-    articleId: z.string().describe('Article workspace id'),
-    campaignId: z.string().describe('Campaign id under the article social/ folder'),
+    articleId: articleIdSchema,
+    campaignId: campaignIdSchema,
   }),
   outputSchema: z.object({
     campaignId: z.string(),

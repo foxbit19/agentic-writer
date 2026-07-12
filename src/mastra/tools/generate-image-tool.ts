@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { assertSafeArticleId, assertSafeCampaignId } from '../lib/ids';
 import { HERO_IMAGE_FILENAME } from '../lib/social-campaigns';
-import { GENERATED_IMAGES_DIR } from '../lib/paths';
+import { ARTICLES_DIR, GENERATED_IMAGES_DIR } from '../lib/paths';
 import { IMAGE_GENERATION_MODEL } from '../config/models';
 
 const IMAGE_PROMPT_SUFFIX =
@@ -13,6 +14,23 @@ const IMAGE_PROMPT_SUFFIX =
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL ?? 'http://localhost:4111';
 
 const SIZE_OPTIONS = ['1024x1024', '1536x1024', '1024x1536'] as const;
+
+/**
+ * Ensures `outputDir` resolves under `ARTICLES_DIR` so agents cannot write outside article storage.
+ *
+ * @param outputDir - Candidate directory from the Graphic Designer tool call
+ * @returns Absolute resolved path under articles storage
+ * @throws {Error} When the path escapes `ARTICLES_DIR`
+ */
+function assertSafeOutputDir(outputDir: string): string {
+  const resolved = path.resolve(outputDir);
+  const articlesRoot = path.resolve(ARTICLES_DIR);
+  const relative = path.relative(articlesRoot, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(`outputDir must be under ${ARTICLES_DIR}`);
+  }
+  return resolved;
+}
 
 export const generateImageTool = createTool({
   id: 'generate-image',
@@ -71,8 +89,11 @@ export const generateImageTool = createTool({
     const imageBuffer = Buffer.from(b64, 'base64');
 
     if (outputDir && articleId && campaignId) {
-      await mkdir(outputDir, { recursive: true });
-      await writeFile(path.join(outputDir, HERO_IMAGE_FILENAME), imageBuffer);
+      assertSafeArticleId(articleId);
+      assertSafeCampaignId(campaignId);
+      const safeDir = assertSafeOutputDir(outputDir);
+      await mkdir(safeDir, { recursive: true });
+      await writeFile(path.join(safeDir, HERO_IMAGE_FILENAME), imageBuffer);
       return {
         url: `${PUBLIC_BASE_URL}/articles/${articleId}/social/${campaignId}/${HERO_IMAGE_FILENAME}`,
         width,

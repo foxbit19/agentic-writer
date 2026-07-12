@@ -36,7 +36,7 @@ flowchart TD
 2. **Write** — the Writer drafts the article as Markdown from the research brief, following the operating instructions. When `authorDraft` is provided, that prose is the starting point to develop.
 3. **Review** — the Editor reviews the draft against instruction intent, research, and (when present) the author draft.
 4. **Approve** — the workflow suspends for human approval; the human approves or rejects with additional operating instructions.
-5. Steps 2–4 repeat, feeding the editor's review and the human's guidance back to the Writer, until the human approves.
+5. Steps 2–4 repeat, feeding the editor's review and the human's guidance back to the Writer, until the human approves — or until 10 revision iterations, in which case the latest draft is finalized with `completionReason: "max_iterations_reached"` so work is not discarded.
 6. The approved draft is saved as `approved.md` inside a per-run article folder under `data/articles/`, with numbered drafts and editor reviews preserved in `drafts/`. Resume suspended runs in Studio to continue reviewing an in-progress article later.
 
 ### Article workspace
@@ -60,11 +60,13 @@ While status is `awaiting_review`, resume the suspended workflow run in Studio. 
 - `notes` — operating instructions (article type, topics, sources/URLs, constraints). Never article body.
 - `authorDraft` — optional author-written prose or outline that belongs in the article.
 
-**Output:** `{ markdown: string, articleId: string, title: string }`
+**Output:** `{ markdown: string, articleId: string, title: string, completionReason: "approved" | "max_iterations_reached" }`
+
+When instructions include source URLs, each URL is fetched with SSRF guards (http/https only, private/link-local IPs blocked, redirect re-check, 10s timeout, 2MB size cap).
 
 ### Agents
 
-Researcher → Writer → Editor (looping until human approval).
+Researcher → Writer → Editor (looping until human approval or the revision cap).
 
 ## Social media workflow
 
@@ -102,7 +104,6 @@ flowchart TD
 
 - **`PUBLIC_BASE_URL`** — base URL for locally generated hero images. Defaults to `http://localhost:4111`.
 - **`DUB_API_KEY`** (optional) — when `articleUrl` is provided, the Content Creator shortens it via [Dub's MCP server](https://dub.co) before writing posts.
-- **Buffer** — not used by the workflow for now. `BUFFER_API_KEY` and `buffer-mcp-client.ts` remain in the repo for a future publish step.
 
 ### Who this content is for
 

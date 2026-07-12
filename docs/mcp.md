@@ -45,14 +45,14 @@ Approval uses the same LibSQL workflow storage as Studio, so start/resume only w
 |------|-------|--------|
 | `start_article_workflow` | `{ notes, authorDraft? }` | `notes` = operating instructions; optional `authorDraft` = prose to develop. Blocks until first human-approval suspend (or completion). Can take several minutes. |
 | `list_articles` | `{ status? }` | All workspaces; optional `in_progress` / `awaiting_review` / `approved` filter. |
-| `get_article` | `{ articleId }` | Manifest + `approved.md` when present. |
+| `get_article` | `{ articleId }` | Manifest + `approved.md` when present. `articleId` must match `/^[a-z0-9_]+$/i`. |
 | `get_article_drafts` | `{ articleId }` | Numbered drafts with editor reviews and human notes. |
 | `get_article_status` | `{ articleId }` | `article.json` status plus workflow run status when available. |
 | `approve_draft` | `{ articleId, notes? }` | Resume suspended run with `approved: true`. |
 | `reject_draft` | `{ articleId, notes }` | Resume with `approved: false` and revision guidance; waits for next suspend. |
 | `start_social_media_workflow` | `{ articleId, platforms, articleUrl? }` | Blocks until campaign is saved. |
 | `list_social_campaigns` | `{ articleId }` | Campaign folders under the article. |
-| `get_social_campaign` | `{ articleId, campaignId }` | Posts, strategy (timing), hero image URL/path. |
+| `get_social_campaign` | `{ articleId, campaignId }` | Posts, strategy (timing), hero image URL/path. `campaignId` must match `/^[0-9TZ_-]+_[a-z0-9]+$/i`. |
 
 ## Typical flow
 

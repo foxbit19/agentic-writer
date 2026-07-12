@@ -30,6 +30,12 @@ const draftStateSchema = z.object({
   draftNumber: z.number(),
 });
 
+/**
+ * Formats an optional author draft block for Writer/Editor prompts.
+ *
+ * @param authorDraft - Optional author-written prose from the workflow input
+ * @returns A prompt section, or an empty string when no draft was provided
+ */
 function authorDraftBlock(authorDraft: string | undefined): string {
   const trimmed = authorDraft?.trim();
   if (!trimmed) return '';
@@ -235,6 +241,7 @@ const finalizeArticleStep = createStep({
     markdown: z.string(),
     articleId: z.string(),
     title: z.string(),
+    completionReason: z.enum(['approved', 'max_iterations_reached']),
   }),
   execute: async ({ inputData }) => {
     const saved = await finalizeArticle(
@@ -246,6 +253,9 @@ const finalizeArticleStep = createStep({
       markdown: saved.markdown,
       articleId: saved.id,
       title: saved.title,
+      completionReason: inputData.approved
+        ? ('approved' as const)
+        : ('max_iterations_reached' as const),
     };
   },
 });
@@ -267,6 +277,9 @@ export const articleWorkflow = createWorkflow({
     markdown: z.string().describe('The final, human-approved article as Markdown'),
     articleId: z.string().describe('Saved article id in data/articles/'),
     title: z.string().describe('Article title extracted from the Markdown'),
+    completionReason: z
+      .enum(['approved', 'max_iterations_reached'])
+      .describe('Why the draft loop ended — human approval or revision cap'),
   }),
 })
   .then(researchTopicsStep)
@@ -282,10 +295,9 @@ export const articleWorkflow = createWorkflow({
     draftNumber: 0,
   }))
   .dountil(draftReviewWorkflow, async ({ inputData, iterationCount }) => {
-    if (iterationCount >= MAX_REVISION_ITERATIONS) {
-      throw new Error('Maximum revision iterations reached without human approval');
-    }
-    return inputData.approved === true;
+    // Stop on approval, or finalize the latest draft when the revision cap is hit
+    // instead of failing the whole run and discarding work.
+    return inputData.approved === true || iterationCount >= MAX_REVISION_ITERATIONS;
   })
   .then(finalizeArticleStep)
   .commit();

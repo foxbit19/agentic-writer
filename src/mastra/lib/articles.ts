@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync, mkdir
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { assertSafeArticleId } from './ids';
 import { ARTICLES_DIR } from './paths';
 import { parseMarkdownArticle, stripDraftRevisionFromMarkdown } from './markdown';
 
@@ -31,6 +32,12 @@ const APPROVED_FILENAME = 'approved.md';
 const LEGACY_APPROVED_FILENAME = 'approved.mdx';
 const MANIFEST_FILENAME = 'article.json';
 
+/**
+ * Turns a title into a filesystem-safe snake_case slug (max 50 chars).
+ *
+ * @param title - Article title to slugify
+ * @returns A non-empty slug; falls back to `"article"` when nothing usable remains
+ */
 export function slugify(title: string): string {
   const slug = title
     .toLowerCase()
@@ -355,6 +362,7 @@ export interface ArticleDraft {
 }
 
 export async function getArticleManifest(articleId: string): Promise<ArticleManifest> {
+  assertSafeArticleId(articleId);
   await migrateLegacyArticlesIfNeeded();
   if (!isArticleWorkspaceDir(articleId)) {
     throw new Error(`Article "${articleId}" not found`);
@@ -385,6 +393,7 @@ export async function listAllArticles(
 }
 
 export async function listArticleDrafts(articleId: string): Promise<ArticleDraft[]> {
+  assertSafeArticleId(articleId);
   await migrateLegacyArticlesIfNeeded();
   if (!isArticleWorkspaceDir(articleId)) {
     throw new Error(`Article "${articleId}" not found`);
@@ -474,6 +483,7 @@ export function listSavedArticleIds(): string[] {
 }
 
 export async function readSavedArticle(articleId: string): Promise<SavedArticle> {
+  assertSafeArticleId(articleId);
   await migrateLegacyArticlesIfNeeded();
 
   const markdown = await readApprovedMarkdown(articleId);

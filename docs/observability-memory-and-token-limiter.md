@@ -56,7 +56,7 @@ Workflow steps pass memory on each `agent.generate()` call so tool-heavy agents 
 | Agent | Primary benefit |
 |-------|-----------------|
 | Researcher | Compresses web-search tool results across multiple searches. |
-| Content Creator | Compresses Dub and Buffer MCP tool history across create and publish steps. |
+| Content Creator | Compresses Dub MCP tool history across create steps. |
 | Graphic Designer | Compresses image-generation tool context. |
 | Writer / Editor / Strategist | Lower impact on typical runs; revision loops benefit when history grows. |
 
