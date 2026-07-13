@@ -15,3 +15,4 @@ data/
 src/mastra/config/user-profile.local.json
 .pnpm-store/*
 src/**/.DS_Store
+.DS_Store

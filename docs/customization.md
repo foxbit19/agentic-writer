@@ -50,7 +50,7 @@ Each social workflow run writes a campaign under the article folder:
 data/articles/{article_id}/social/{campaign_id}/
   campaign.json       # runId, articleId, platforms, savedAt, imageUrl
   strategy.md         # strategist summary + per-platform angles
-  image-brief.md      # content creator brief for the hero image
+  image-brief.md      # title, opening claim, and content creator brief for the hero image
   hero-image.json     # { filename, url, altText }
   hero-image.png      # saved alongside the campaign
   posts/
@@ -62,7 +62,7 @@ Review posts on disk and publish manually.
 
 ## Brand visuals
 
-Edit `src/mastra/config/visual-style.ts` to change colors and illustration rules for hero images. Hero images are always abstract and text-free by policy (enforced in the tool, agents, and visual style config).
+Edit `src/mastra/config/visual-style.ts` to change colors and illustration rules for hero images. Hero images are anchored on the article title and opening claim, may use simple schematic figures (shapes, arrows, comparisons), and are always text-free by policy (enforced in the tool, agents, and visual style config).
 
 ## Hero images
 

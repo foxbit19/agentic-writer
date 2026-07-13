@@ -4,7 +4,7 @@ import { shortenUrl } from '../lib/shorten-url';
 import { platformSchema } from '../config/platforms';
 import { workflowAgentMemory } from '../lib/workflow-memory';
 import { listSavedArticleIds, readSavedArticle } from '../lib/articles';
-import { parseMarkdownArticle } from '../lib/markdown';
+import { parseMarkdownArticle, extractArticleClaim } from '../lib/markdown';
 import { initSocialCampaignWorkspace, saveSocialCampaign } from '../lib/social-campaigns';
 
 function buildArticleIdSchema() {
@@ -50,6 +50,7 @@ const prepareArticleStep = createStep({
     articleUrl: z.string().optional(),
     platforms: z.array(platformSchema),
     articleTitle: z.string(),
+    articleClaim: z.string(),
     articleText: z.string(),
   }),
   execute: async ({ inputData }) => {
@@ -63,6 +64,7 @@ const prepareArticleStep = createStep({
       articleUrl: articleUrl ? await shortenUrl(articleUrl) : undefined,
       platforms,
       articleTitle: title || saved.title,
+      articleClaim: extractArticleClaim(saved.markdown),
       articleText: textContent,
     };
   },
@@ -76,13 +78,14 @@ const strategyStep = createStep({
     articleId: z.string(),
     articleUrl: z.string().optional(),
     articleTitle: z.string(),
+    articleClaim: z.string(),
     articleText: z.string(),
     platforms: z.array(platformSchema),
     strategySummary: z.string(),
     platformStrategies: z.array(platformStrategySchema),
   }),
   execute: async ({ inputData, mastra, runId, resourceId }) => {
-    const { articleId, articleUrl, articleTitle, articleText, platforms } = inputData;
+    const { articleId, articleUrl, articleTitle, articleClaim, articleText, platforms } = inputData;
 
     const strategist = mastra?.getAgent('strategistAgent');
     if (!strategist) {
@@ -110,6 +113,7 @@ const strategyStep = createStep({
       articleId,
       articleUrl,
       articleTitle,
+      articleClaim,
       articleText,
       platforms,
       strategySummary: response.object.strategySummary,
@@ -124,6 +128,8 @@ const createContentStep = createStep({
   inputSchema: strategyStep.outputSchema,
   outputSchema: z.object({
     articleId: z.string(),
+    articleTitle: z.string(),
+    articleClaim: z.string(),
     platforms: z.array(platformSchema),
     strategySummary: z.string(),
     platformStrategies: z.array(platformStrategySchema),
@@ -134,6 +140,7 @@ const createContentStep = createStep({
     const {
       articleId,
       articleTitle,
+      articleClaim,
       articleUrl,
       articleText,
       platformStrategies,
@@ -148,8 +155,12 @@ const createContentStep = createStep({
 
     const urlLine = articleUrl ? `Article URL (copy it exactly as given wherever a link belongs): ${articleUrl}\n` : '';
 
+    const claimLine = articleClaim
+      ? `Article claim (opening): ${articleClaim}\n`
+      : 'Article claim (opening): (none extracted — anchor the hero image brief on the title)\n';
+
     const response = await contentCreator.generate(
-      `Article title: ${articleTitle}\n${urlLine}\nArticle content:\n${articleText}\n\nPublication strategy: ${strategySummary}\n\nPer-platform strategy:\n${JSON.stringify(platformStrategies, null, 2)}\n\nWrite the posts and the hero image creative brief now.`,
+      `Article title: ${articleTitle}\n${claimLine}${urlLine}\nArticle content:\n${articleText}\n\nPublication strategy: ${strategySummary}\n\nPer-platform strategy:\n${JSON.stringify(platformStrategies, null, 2)}\n\nWrite the posts and the hero image creative brief now. Anchor the hero image brief on the title and/or the opening claim — pick whichever is more visually concrete.`,
       {
         memory: workflowAgentMemory(runId, 'content-creator-agent', resourceId),
         structuredOutput: {
@@ -165,6 +176,8 @@ const createContentStep = createStep({
 
     return {
       articleId,
+      articleTitle,
+      articleClaim,
       platforms,
       strategySummary,
       platformStrategies,
@@ -180,6 +193,8 @@ const initCampaignStep = createStep({
   inputSchema: createContentStep.outputSchema,
   outputSchema: z.object({
     articleId: z.string(),
+    articleTitle: z.string(),
+    articleClaim: z.string(),
     campaignId: z.string(),
     campaignDir: z.string(),
     platforms: z.array(platformSchema),
@@ -196,6 +211,8 @@ const initCampaignStep = createStep({
 
     return {
       articleId: inputData.articleId,
+      articleTitle: inputData.articleTitle,
+      articleClaim: inputData.articleClaim,
       campaignId,
       campaignDir,
       platforms: inputData.platforms,
@@ -213,6 +230,8 @@ const designImageStep = createStep({
   inputSchema: initCampaignStep.outputSchema,
   outputSchema: z.object({
     articleId: z.string(),
+    articleTitle: z.string(),
+    articleClaim: z.string(),
     campaignId: z.string(),
     campaignDir: z.string(),
     platforms: z.array(platformSchema),
@@ -226,6 +245,8 @@ const designImageStep = createStep({
   execute: async ({ inputData, mastra, runId, resourceId }) => {
     const {
       articleId,
+      articleTitle,
+      articleClaim,
       campaignId,
       campaignDir,
       platforms,
@@ -240,8 +261,12 @@ const designImageStep = createStep({
       throw new Error('Graphic Designer agent not found');
     }
 
+    const claimLine = articleClaim
+      ? `Article claim (opening): ${articleClaim}\n`
+      : 'Article claim (opening): (none — use the title)\n';
+
     const response = await graphicDesigner.generate(
-      `Creative brief from the Content Creator:\n${imageBrief}\n\nSave the hero image inside the article campaign folder.\noutputDir: ${campaignDir}\narticleId: ${articleId}\ncampaignId: ${campaignId}\n\nProduce the hero image now.`,
+      `Article title: ${articleTitle}\n${claimLine}\nCreative brief from the Content Creator:\n${imageBrief}\n\nThe image must visually reflect the title or claim. Use simple schematic figures when they clarify the idea.\n\nSave the hero image inside the article campaign folder.\noutputDir: ${campaignDir}\narticleId: ${articleId}\ncampaignId: ${campaignId}\n\nProduce the hero image now.`,
       {
         memory: workflowAgentMemory(runId, 'graphic-designer-agent', resourceId),
         structuredOutput: {
@@ -255,6 +280,8 @@ const designImageStep = createStep({
 
     return {
       articleId,
+      articleTitle,
+      articleClaim,
       campaignId,
       campaignDir,
       platforms,
@@ -281,6 +308,8 @@ const saveCampaignStep = createStep({
   execute: async ({ inputData, runId }) => {
     const saved = await saveSocialCampaign({
       articleId: inputData.articleId,
+      articleTitle: inputData.articleTitle,
+      articleClaim: inputData.articleClaim,
       campaignId: inputData.campaignId,
       campaignDir: inputData.campaignDir,
       runId,

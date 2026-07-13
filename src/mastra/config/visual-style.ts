@@ -8,7 +8,7 @@ export const visualStyle = {
   paletteNotes:
     'Use the primary blue-violet and its tints/shades as the only accent colors on the near-black background. Do not introduce unrelated hues.',
   styleNotes:
-    'Evocative abstract 2D illustration — mood, metaphor, and atmosphere over literal depiction. Simple geometric forms, bold silhouettes, generous negative space. No photorealism, no 3D, no busy detail. Never render text, letters, numbers, logos, charts, graphs, diagrams, or UI elements. Avoid gradients and texture. One light source if any shading. Keep compositions minimal and symbolic.',
+    'Evocative abstract 2D illustration grounded in the article subject — mood, metaphor, and simple schematic figures over literal depiction. Simple geometric forms, arrows, before/after silhouettes, icon-like shapes, bold silhouettes, generous negative space. No photorealism, no 3D, no busy detail. Never render text, letters, numbers, logos, axes, or labeled data charts. Avoid gradients and texture. One light source if any shading. Keep compositions minimal and symbolic.',
 } as const;
 
 export function formatVisualStyle(): string {

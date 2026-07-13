@@ -29,6 +29,8 @@ export interface SavedSocialCampaign {
 
 export interface SaveSocialCampaignInput {
   articleId: string;
+  articleTitle: string;
+  articleClaim: string;
   campaignId: string;
   campaignDir: string;
   runId: string;
@@ -117,6 +119,33 @@ platform: ${post.platform}
 ${hashtags}---
 
 ${post.text}
+`;
+}
+
+/**
+ * Formats the saved image brief with article title and opening claim for human review.
+ *
+ * @param articleTitle - Article display title
+ * @param articleClaim - Opening claim extracted from the article body
+ * @param imageBrief - Creative brief from the Content Creator
+ * @returns Markdown content for image-brief.md
+ */
+function formatImageBriefMarkdown(
+  articleTitle: string,
+  articleClaim: string,
+  imageBrief: string,
+): string {
+  const claimSection = articleClaim
+    ? `## Opening claim\n\n${articleClaim}\n\n`
+    : '';
+
+  return `## Article title
+
+${articleTitle}
+
+${claimSection}## Creative brief
+
+${imageBrief}
 `;
 }
 
@@ -287,7 +316,11 @@ export async function saveSocialCampaign(
       formatStrategyMarkdown(input.strategySummary, input.platformStrategies),
       'utf8',
     ),
-    writeFile(path.join(campaignDir, 'image-brief.md'), input.imageBrief, 'utf8'),
+    writeFile(
+      path.join(campaignDir, 'image-brief.md'),
+      formatImageBriefMarkdown(input.articleTitle, input.articleClaim, input.imageBrief),
+      'utf8',
+    ),
     writeFile(
       path.join(campaignDir, 'hero-image.json'),
       JSON.stringify(

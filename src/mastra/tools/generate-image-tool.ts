@@ -9,7 +9,7 @@ import { ARTICLES_DIR, GENERATED_IMAGES_DIR } from '../lib/paths';
 import { IMAGE_GENERATION_MODEL } from '../config/models';
 
 const IMAGE_PROMPT_SUFFIX =
-  ' Evocative abstract illustration only. No text, letters, words, numbers, typography, logos, watermarks, charts, graphs, diagrams, screenshots, or UI mockups.';
+  ' On-brand 2D illustration with simple schematic figures allowed (shapes, arrows, comparisons). No text, letters, words, numbers, typography, logos, watermarks, axes, labeled charts, screenshots, or UI mockups.';
 
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL ?? 'http://localhost:4111';
 

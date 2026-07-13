@@ -84,11 +84,11 @@ flowchart TD
 
 ### Steps
 
-1. **Load** — reads the selected article from `data/articles/` (dropdown in Studio).
+1. **Load** — reads the selected article from `data/articles/` (dropdown in Studio) and mechanically extracts `articleClaim` from the first 1–2 prose paragraphs after the H1.
 2. **Strategize** — the Strategist decides a publication strategy: a hook/angle, call to action, and timing guidance for each requested platform.
-3. **Create** — the Content Creator writes a platform-native post for every requested platform and an abstract, evocative creative brief for the hero image (no charts or text).
-4. **Design** — the Graphic Designer executes that brief into one on-brand abstract hero image.
-5. **Save** — writes the campaign under `data/articles/{articleId}/social/{campaignId}/` (posts, strategy, image brief, hero image metadata). No human approval step; review and publish manually from disk.
+3. **Create** — the Content Creator writes a platform-native post for every requested platform and a creative brief for the hero image anchored on the article title and/or opening claim (simple schematic figures allowed; no text labels).
+4. **Design** — the Graphic Designer executes that brief into one on-brand hero image that reflects the title or claim, using simple figures when they clarify the idea.
+5. **Save** — writes the campaign under `data/articles/{articleId}/social/{campaignId}/` (posts, strategy, image brief with title/claim header, hero image metadata). No human approval step; review and publish manually from disk.
 
 ### Input and output
 

@@ -52,7 +52,7 @@ export const webSearchTool = createTool({
  * @param query - Search query string
  * @param maxResults - Maximum number of results to return
  * @returns Parsed search results (empty array when the query genuinely has no hits)
- * @throws {Error} When the HTTP request fails or the HTML layout cannot be parsed
+ * @throws {Error} When the HTTP request fails, the HTML layout cannot be parsed, or DuckDuckGo serves its bot-detection page (rate limiting)
  */
 export async function searchWeb(query: string, maxResults: number) {
   const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
@@ -88,6 +88,13 @@ export async function searchWeb(query: string, maxResults: number) {
     if (hasResultMarkup) {
       throw new Error(
         'Web search found result markup but failed to parse it — DuckDuckGo HTML layout may have changed',
+      );
+    }
+    const looksBlocked =
+      html.toLowerCase().includes('anomaly') || html.toLowerCase().includes('bots use duckduckgo');
+    if (looksBlocked) {
+      throw new Error(
+        'Web search is being rate-limited (DuckDuckGo bot-detection page) — results are unavailable, not empty. Back off before retrying.',
       );
     }
     if (looksLikeDdg) {

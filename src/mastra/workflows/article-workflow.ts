@@ -69,7 +69,8 @@ const researchTopicsStep = createStep({
       throw new Error('Researcher agent not found');
     }
 
-    const sourceUrls = extractUrls(notes);
+    // Source URLs may live in the notes or in the author draft (e.g. a references list).
+    const sourceUrls = extractUrls([notes, authorDraft ?? ''].join('\n'));
     const fetchedSources =
       sourceUrls.length > 0
         ? await Promise.all(
@@ -91,12 +92,18 @@ const researchTopicsStep = createStep({
 
     const researchPrompt =
       sourceUrls.length > 0
-        ? `Author operating instructions (not article body):\n\n${notes}${draftNote}\n\nThe instructions include source URL(s). The article must be based ONLY on the fetched source material below (plus any claims already in the author draft if provided) — do not treat the operating instructions as facts to quote, and do not add facts from other sources or general knowledge.\n\nFetched source material:\n\n${fetchedSources.join('\n\n---\n\n')}\n\nProduce a research brief for the Writer from this material only. Do not use web search. Extract author instructions (topics, constraints, article type). Only flag personal content if the instructions explicitly ask to include an anecdote or opinion.`
+        ? `Author operating instructions (not article body):\n\n${notes}${draftNote}\n\nThe instructions and/or author draft include source URL(s). The article must be based ONLY on the fetched source material below (plus any claims already in the author draft if provided) — do not treat the operating instructions as facts to quote, and do not add facts from other sources or general knowledge.\n\nFetched source material:\n\n${fetchedSources.join('\n\n---\n\n')}\n\nProduce a research brief for the Writer from this material only. Do not use web search. Extract author instructions (topics, constraints, article type). Only flag personal content if the instructions explicitly ask to include an anecdote or opinion.`
         : `Author operating instructions (not article body):\n\n${notes}${draftNote}\n\nExtract the topics and constraints from these instructions, research them online, and produce a research brief for the Writer. Include an Author instructions section. Only flag personal content if the instructions explicitly ask to include an anecdote or opinion. Do not treat the operating instructions as article prose.`;
 
     const response = await researcher.generate(researchPrompt, {
       memory: workflowAgentMemory(runId, 'researcher-agent', resourceId),
     });
+
+    if (!response.text.trim()) {
+      throw new Error(
+        'Researcher returned an empty brief (it likely exhausted its steps on failing web searches). Aborting so the Writer does not proceed without sources.',
+      );
+    }
 
     await saveResearchBrief(articleId, response.text);
 
