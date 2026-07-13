@@ -1,5 +1,7 @@
 # Agentic writer
 
+![Agentic writer](./agentic-writer.png)
+
 Agentic writer is a Mastra-powered content pipeline: write an article from operating instructions (and an optional author draft), then generate social posts — with human approval on articles before promotion.
 
 ```mermaid
