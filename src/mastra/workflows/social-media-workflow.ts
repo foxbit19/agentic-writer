@@ -4,9 +4,14 @@ import { shortenUrl } from '../lib/shorten-url';
 import { platformSchema } from '../config/platforms';
 import { workflowAgentMemory } from '../lib/workflow-memory';
 import { listSavedArticleIds, readSavedArticle } from '../lib/articles';
-import { parseMarkdownArticle, extractArticleClaim } from '../lib/markdown';
+import { parseMarkdownArticle } from '../lib/markdown';
 import { initSocialCampaignWorkspace, saveSocialCampaign } from '../lib/social-campaigns';
 
+/**
+ * Builds a Zod schema for selecting a saved article id in Studio.
+ *
+ * @returns String schema with a dropdown-friendly description of available articles
+ */
 function buildArticleIdSchema() {
   const ids = listSavedArticleIds();
   if (ids.length === 0) {
@@ -50,7 +55,6 @@ const prepareArticleStep = createStep({
     articleUrl: z.string().optional(),
     platforms: z.array(platformSchema),
     articleTitle: z.string(),
-    articleClaim: z.string(),
     articleText: z.string(),
   }),
   execute: async ({ inputData }) => {
@@ -64,7 +68,6 @@ const prepareArticleStep = createStep({
       articleUrl: articleUrl ? await shortenUrl(articleUrl) : undefined,
       platforms,
       articleTitle: title || saved.title,
-      articleClaim: extractArticleClaim(saved.markdown),
       articleText: textContent,
     };
   },
@@ -78,14 +81,13 @@ const strategyStep = createStep({
     articleId: z.string(),
     articleUrl: z.string().optional(),
     articleTitle: z.string(),
-    articleClaim: z.string(),
     articleText: z.string(),
     platforms: z.array(platformSchema),
     strategySummary: z.string(),
     platformStrategies: z.array(platformStrategySchema),
   }),
   execute: async ({ inputData, mastra, runId, resourceId }) => {
-    const { articleId, articleUrl, articleTitle, articleClaim, articleText, platforms } = inputData;
+    const { articleId, articleUrl, articleTitle, articleText, platforms } = inputData;
 
     const strategist = mastra?.getAgent('strategistAgent');
     if (!strategist) {
@@ -113,7 +115,6 @@ const strategyStep = createStep({
       articleId,
       articleUrl,
       articleTitle,
-      articleClaim,
       articleText,
       platforms,
       strategySummary: response.object.strategySummary,
@@ -122,27 +123,74 @@ const strategyStep = createStep({
   },
 });
 
-const createContentStep = createStep({
-  id: 'create-content',
-  description: 'The Content Creator writes platform-native posts and a creative brief for the hero image',
+const initCampaignStep = createStep({
+  id: 'init-campaign',
+  description: 'Creates the campaign folder under the article before posts and hero image run in parallel',
   inputSchema: strategyStep.outputSchema,
   outputSchema: z.object({
     articleId: z.string(),
+    articleUrl: z.string().optional(),
     articleTitle: z.string(),
-    articleClaim: z.string(),
+    articleText: z.string(),
+    campaignId: z.string(),
+    campaignDir: z.string(),
     platforms: z.array(platformSchema),
     strategySummary: z.string(),
     platformStrategies: z.array(platformStrategySchema),
-    imageBrief: z.string(),
-    posts: z.array(postSchema),
   }),
+  execute: async ({ inputData, runId }) => {
+    const { campaignId, campaignDir } = await initSocialCampaignWorkspace(
+      inputData.articleId,
+      runId,
+    );
+
+    return {
+      articleId: inputData.articleId,
+      articleUrl: inputData.articleUrl,
+      articleTitle: inputData.articleTitle,
+      articleText: inputData.articleText,
+      campaignId,
+      campaignDir,
+      platforms: inputData.platforms,
+      strategySummary: inputData.strategySummary,
+      platformStrategies: inputData.platformStrategies,
+    };
+  },
+});
+
+const createContentOutputSchema = z.object({
+  articleId: z.string(),
+  articleTitle: z.string(),
+  campaignId: z.string(),
+  campaignDir: z.string(),
+  platforms: z.array(platformSchema),
+  strategySummary: z.string(),
+  platformStrategies: z.array(platformStrategySchema),
+  posts: z.array(postSchema),
+});
+
+const designImageOutputSchema = z.object({
+  articleId: z.string(),
+  articleTitle: z.string(),
+  campaignId: z.string(),
+  campaignDir: z.string(),
+  imageUrl: z.string().nullable(),
+  imageAltText: z.string().nullable(),
+});
+
+const createContentStep = createStep({
+  id: 'create-content',
+  description: 'The Content Creator writes platform-native posts',
+  inputSchema: initCampaignStep.outputSchema,
+  outputSchema: createContentOutputSchema,
   execute: async ({ inputData, mastra, runId, resourceId }) => {
     const {
       articleId,
       articleTitle,
-      articleClaim,
       articleUrl,
       articleText,
+      campaignId,
+      campaignDir,
       platformStrategies,
       strategySummary,
       platforms,
@@ -155,19 +203,12 @@ const createContentStep = createStep({
 
     const urlLine = articleUrl ? `Article URL (copy it exactly as given wherever a link belongs): ${articleUrl}\n` : '';
 
-    const claimLine = articleClaim
-      ? `Article claim (opening): ${articleClaim}\n`
-      : 'Article claim (opening): (none extracted — anchor the hero image brief on the title)\n';
-
     const response = await contentCreator.generate(
-      `Article title: ${articleTitle}\n${claimLine}${urlLine}\nArticle content:\n${articleText}\n\nPublication strategy: ${strategySummary}\n\nPer-platform strategy:\n${JSON.stringify(platformStrategies, null, 2)}\n\nWrite the posts and the hero image creative brief now. Anchor the hero image brief on the title and/or the opening claim — pick whichever is more visually concrete.`,
+      `Article title: ${articleTitle}\n${urlLine}\nArticle content:\n${articleText}\n\nPublication strategy: ${strategySummary}\n\nPer-platform strategy:\n${JSON.stringify(platformStrategies, null, 2)}\n\nWrite the posts now.`,
       {
         memory: workflowAgentMemory(runId, 'content-creator-agent', resourceId),
         structuredOutput: {
           schema: z.object({
-            imageBrief: z
-              .string()
-              .describe('Creative brief for the Graphic Designer: concrete subject, mood, and composition to depict'),
             posts: z.array(postSchema),
           }),
         },
@@ -177,96 +218,31 @@ const createContentStep = createStep({
     return {
       articleId,
       articleTitle,
-      articleClaim,
+      campaignId,
+      campaignDir,
       platforms,
       strategySummary,
       platformStrategies,
-      imageBrief: response.object.imageBrief,
       posts: response.object.posts,
-    };
-  },
-});
-
-const initCampaignStep = createStep({
-  id: 'init-campaign',
-  description: 'Creates the campaign folder under the article before generating the hero image',
-  inputSchema: createContentStep.outputSchema,
-  outputSchema: z.object({
-    articleId: z.string(),
-    articleTitle: z.string(),
-    articleClaim: z.string(),
-    campaignId: z.string(),
-    campaignDir: z.string(),
-    platforms: z.array(platformSchema),
-    strategySummary: z.string(),
-    platformStrategies: z.array(platformStrategySchema),
-    imageBrief: z.string(),
-    posts: z.array(postSchema),
-  }),
-  execute: async ({ inputData, runId }) => {
-    const { campaignId, campaignDir } = await initSocialCampaignWorkspace(
-      inputData.articleId,
-      runId,
-    );
-
-    return {
-      articleId: inputData.articleId,
-      articleTitle: inputData.articleTitle,
-      articleClaim: inputData.articleClaim,
-      campaignId,
-      campaignDir,
-      platforms: inputData.platforms,
-      strategySummary: inputData.strategySummary,
-      platformStrategies: inputData.platformStrategies,
-      imageBrief: inputData.imageBrief,
-      posts: inputData.posts,
     };
   },
 });
 
 const designImageStep = createStep({
   id: 'design-image',
-  description: 'The Graphic Designer executes the creative brief into one on-brand hero image',
+  description: 'The Graphic Designer creates one on-brand hero image from the article title only',
   inputSchema: initCampaignStep.outputSchema,
-  outputSchema: z.object({
-    articleId: z.string(),
-    articleTitle: z.string(),
-    articleClaim: z.string(),
-    campaignId: z.string(),
-    campaignDir: z.string(),
-    platforms: z.array(platformSchema),
-    strategySummary: z.string(),
-    platformStrategies: z.array(platformStrategySchema),
-    imageBrief: z.string(),
-    imageUrl: z.string().nullable(),
-    imageAltText: z.string().nullable(),
-    posts: z.array(postSchema),
-  }),
+  outputSchema: designImageOutputSchema,
   execute: async ({ inputData, mastra, runId, resourceId }) => {
-    const {
-      articleId,
-      articleTitle,
-      articleClaim,
-      campaignId,
-      campaignDir,
-      platforms,
-      strategySummary,
-      platformStrategies,
-      imageBrief,
-      posts,
-    } = inputData;
+    const { articleId, articleTitle, campaignId, campaignDir } = inputData;
 
     const graphicDesigner = mastra?.getAgent('graphicDesignerAgent');
     if (!graphicDesigner) {
       throw new Error('Graphic Designer agent not found');
     }
 
-    const claimLine = articleClaim
-      ? `Article claim (opening): ${articleClaim}\n`
-      : 'Article claim (opening): (none — use the title)\n';
-
     const response = await graphicDesigner.generate(
-      `Article title: ${articleTitle}\n${claimLine}\nCreative brief from the Content Creator:\n${imageBrief}\n\nThe image must visually reflect the title or claim. Use simple schematic figures when they clarify the idea.\n\nSave the hero image inside the article campaign folder.\noutputDir: ${campaignDir}\narticleId: ${articleId}\ncampaignId: ${campaignId}\n\nProduce the hero image now.`,
+      `Article title: ${articleTitle}\n\nCreate one on-brand hero image that visually expresses this title only. Do not use article body, claims, or post copy. Use simple schematic figures when they clarify the idea.\n\nSave the hero image inside the article campaign folder.\noutputDir: ${campaignDir}\narticleId: ${articleId}\ncampaignId: ${campaignId}\n\nProduce the hero image now.`,
       {
         memory: workflowAgentMemory(runId, 'graphic-designer-agent', resourceId),
         structuredOutput: {
@@ -281,16 +257,10 @@ const designImageStep = createStep({
     return {
       articleId,
       articleTitle,
-      articleClaim,
       campaignId,
       campaignDir,
-      platforms,
-      strategySummary,
-      platformStrategies,
-      imageBrief,
       imageUrl: response.object.imageUrl,
       imageAltText: response.object.imageAltText,
-      posts,
     };
   },
 });
@@ -298,7 +268,10 @@ const designImageStep = createStep({
 const saveCampaignStep = createStep({
   id: 'save-campaign',
   description: 'Saves the social campaign to disk under the article folder',
-  inputSchema: designImageStep.outputSchema,
+  inputSchema: z.object({
+    'create-content': createContentOutputSchema,
+    'design-image': designImageOutputSchema,
+  }),
   outputSchema: z.object({
     campaignId: z.string(),
     campaignDir: z.string(),
@@ -306,20 +279,21 @@ const saveCampaignStep = createStep({
     imageUrl: z.string().nullable(),
   }),
   execute: async ({ inputData, runId }) => {
+    const content = inputData['create-content'];
+    const image = inputData['design-image'];
+
     const saved = await saveSocialCampaign({
-      articleId: inputData.articleId,
-      articleTitle: inputData.articleTitle,
-      articleClaim: inputData.articleClaim,
-      campaignId: inputData.campaignId,
-      campaignDir: inputData.campaignDir,
+      articleId: content.articleId,
+      articleTitle: content.articleTitle,
+      campaignId: content.campaignId,
+      campaignDir: content.campaignDir,
       runId,
-      platforms: inputData.platforms,
-      strategySummary: inputData.strategySummary,
-      platformStrategies: inputData.platformStrategies,
-      imageBrief: inputData.imageBrief,
-      posts: inputData.posts,
-      imageUrl: inputData.imageUrl,
-      imageAltText: inputData.imageAltText,
+      platforms: content.platforms,
+      strategySummary: content.strategySummary,
+      platformStrategies: content.platformStrategies,
+      posts: content.posts,
+      imageUrl: image.imageUrl,
+      imageAltText: image.imageAltText,
     });
 
     return {
@@ -340,8 +314,7 @@ export const socialMediaWorkflow = createWorkflow({
 })
   .then(prepareArticleStep)
   .then(strategyStep)
-  .then(createContentStep)
   .then(initCampaignStep)
-  .then(designImageStep)
+  .parallel([createContentStep, designImageStep])
   .then(saveCampaignStep)
   .commit();

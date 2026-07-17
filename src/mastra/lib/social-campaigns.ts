@@ -30,14 +30,12 @@ export interface SavedSocialCampaign {
 export interface SaveSocialCampaignInput {
   articleId: string;
   articleTitle: string;
-  articleClaim: string;
   campaignId: string;
   campaignDir: string;
   runId: string;
   platforms: z.infer<typeof platformSchema>[];
   strategySummary: string;
   platformStrategies: PlatformStrategy[];
-  imageBrief: string;
   posts: SocialPost[];
   imageUrl: string | null;
   imageAltText: string | null;
@@ -123,29 +121,19 @@ ${post.text}
 }
 
 /**
- * Formats the saved image brief with article title and opening claim for human review.
+ * Formats the saved image brief noting that the hero image is derived from the title only.
  *
- * @param articleTitle - Article display title
- * @param articleClaim - Opening claim extracted from the article body
- * @param imageBrief - Creative brief from the Content Creator
+ * @param articleTitle - Article display title used as the sole image concept
  * @returns Markdown content for image-brief.md
  */
-function formatImageBriefMarkdown(
-  articleTitle: string,
-  articleClaim: string,
-  imageBrief: string,
-): string {
-  const claimSection = articleClaim
-    ? `## Opening claim\n\n${articleClaim}\n\n`
-    : '';
-
+function formatImageBriefMarkdown(articleTitle: string): string {
   return `## Article title
 
 ${articleTitle}
 
-${claimSection}## Creative brief
+## Concept
 
-${imageBrief}
+On-brand hero image visually expressing the article title only (no article body or post copy).
 `;
 }
 
@@ -318,7 +306,7 @@ export async function saveSocialCampaign(
     ),
     writeFile(
       path.join(campaignDir, 'image-brief.md'),
-      formatImageBriefMarkdown(input.articleTitle, input.articleClaim, input.imageBrief),
+      formatImageBriefMarkdown(input.articleTitle),
       'utf8',
     ),
     writeFile(

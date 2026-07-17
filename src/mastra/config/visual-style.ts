@@ -1,6 +1,6 @@
 /**
  * Fixed brand visual style for all AI-generated graphics. The Graphic Designer agent applies
- * this on every image regardless of what creative brief it receives.
+ * this on every image regardless of the article title it receives.
  */
 export const visualStyle = {
   primaryColor: 'rgb(69 94 232 / 1)',

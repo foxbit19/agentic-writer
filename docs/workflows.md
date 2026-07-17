@@ -76,19 +76,25 @@ The `socialMediaWorkflow` loads a saved article from `data/articles/` and saves 
 flowchart TD
     input["Input: articleId + platforms"] --> prepare["Load saved article"]
     prepare --> strategy["Plan strategy (Strategist)"]
-    strategy --> create["Create posts + image brief (Content Creator)"]
-    create --> design["Design hero image (Graphic Designer)"]
-    design --> save["Save campaign to disk"]
+    strategy --> init["Init campaign folder"]
+    init --> parallel
+
+    subgraph parallel ["In parallel"]
+        create["Create posts (Content Creator)"]
+        design["Design hero image from title (Graphic Designer)"]
+    end
+
+    parallel --> save["Save campaign to disk"]
     save --> output["Output: campaignId, campaignDir, posts, imageUrl"]
 ```
 
 ### Steps
 
-1. **Load** — reads the selected article from `data/articles/` (dropdown in Studio) and mechanically extracts `articleClaim` from the first 1–2 prose paragraphs after the H1.
+1. **Load** — reads the selected article from `data/articles/` (dropdown in Studio).
 2. **Strategize** — the Strategist decides a publication strategy: a hook/angle, call to action, and timing guidance for each requested platform.
-3. **Create** — the Content Creator writes a platform-native post for every requested platform and a creative brief for the hero image anchored on the article title and/or opening claim (simple schematic figures allowed; no text labels).
-4. **Design** — the Graphic Designer executes that brief into one on-brand hero image that reflects the title or claim, using simple figures when they clarify the idea.
-5. **Save** — writes the campaign under `data/articles/{articleId}/social/{campaignId}/` (posts, strategy, image brief with title/claim header, hero image metadata). No human approval step; review and publish manually from disk.
+3. **Init campaign** — creates the campaign folder under the article so the hero image can be saved while posts are written.
+4. **Create + Design (parallel)** — the Content Creator writes a platform-native post for every requested platform; at the same time the Graphic Designer creates one on-brand hero image from the **article title only** (simple schematic figures allowed; no text labels). Image generation does not use article body or post copy.
+5. **Save** — writes the campaign under `data/articles/{articleId}/social/{campaignId}/` (posts, strategy, title-based image brief, hero image metadata). No human approval step; review and publish manually from disk.
 
 ### Input and output
 
@@ -111,4 +117,4 @@ All agents read your profile from `src/mastra/config/user-profile.local.json` wh
 
 ### Agents
 
-Strategist → Content Creator → Graphic Designer → save to disk.
+Strategist → init campaign → Content Creator ∥ Graphic Designer → save to disk.
