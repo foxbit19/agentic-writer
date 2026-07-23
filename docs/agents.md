@@ -13,6 +13,21 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 
 All agents share observational memory (`src/mastra/config/agent-memory.ts`) and input token limiting (`src/mastra/config/token-limiter.ts`). Workflow steps scope memory per run via `src/mastra/lib/workflow-memory.ts`.
 
+Pipeline agents (except Researcher) load [skills.sh](https://skills.sh/) Agent Skills from `.agents/skills/` via Mastra’s agent-level `skills` config (`src/mastra/config/pipeline-skills.ts`). Agents call the `skill` tool to load instructions on demand. Project style (`article-style.ts`, personalities, `visual-style.ts`) always wins over skill defaults. Quality bar for new skills: roughly ≥1K installs on skills.sh.
+
+| Agent | Skills (folder names under `.agents/skills/`) |
+|-------|-----------------------------------------------|
+| Researcher | none (first pass) |
+| Writer | `technical-article-writer`, `article-writing`, `blog-writing-guide`, `copywriting-prose-creator` |
+| Editor | `edit-article`, `copy-editing` |
+| Strategist | `content-strategy`, `marketing-psychology`, `seo-audit`, `marketing-ideas` |
+| Content Creator | `social` (skills.sh social-content), `copywriting-hooks`, `marketing-psychology` |
+| Graphic Designer | `high-end-visual-design`, `prompt-images`, `canvas-design` |
+
+Adaptation notes: Writer skips interactive skill intake (notes + research brief are intake). Editor uses copy-editing clarity/voice/specificity sweeps only — not CTA/conversion sweeps. Graphic Designer keeps title-only images and the fixed brand palette. `pbakaus/impeccable@critique` was not wired — that package is frontend-UI critique, not Markdown article review.
+
+Reinstall or update pipeline skills with `npx skills add <owner/repo@skill> -y` (see `skills-lock.json`).
+
 Model strings are centralized in `src/mastra/config/models.ts`. See [A/B testing model overrides](#ab-testing-model-overrides) below to try alternatives without editing agent files.
 
 Article Markdown style rules live in `src/mastra/config/article-style.ts` and are injected into the Writer and Editor agents via `formatArticleStyle()`. The Editor also uses `formatEditorReviewRules()` for enforcement without duplicating rule prose. See [Article style rules](#article-style-rules) for the full key list.
@@ -95,7 +110,7 @@ node .agents/skills/mastra/scripts/provider-registry.mjs --provider openai
 
 ### Researcher (`deepseek/deepseek-v4-flash`)
 
-When operating instructions include URLs, the workflow fetches each page (via `readArticle`) and the Researcher summarizes only that material — no web search. Otherwise, searches the web (via a DuckDuckGo-backed `web-search` tool) for topics found in the instructions. Notes are operating instructions, not article body. Produces a narrative research brief (not an article outline).
+When operating instructions include URLs, the workflow fetches each page (via `readArticle`) and the Researcher summarizes only that material — no web search. Otherwise, searches the web (via the `web-search` tool: DuckDuckGo HTML first, Startpage fallback when DuckDuckGo rate-limits) for topics found in the instructions. Notes are operating instructions, not article body. Produces a narrative research brief (not an article outline).
 
 > You are the Researcher in an article-writing pipeline. You receive author operating instructions (notes) — and sometimes a separate author draft — and turn them into a research brief the Writer agent can work from.
 >
@@ -115,7 +130,7 @@ When operating instructions include URLs, the workflow fetches each page (via `r
 
 ### Writer (`openai/gpt-5`)
 
-Drafts and revises the article as Markdown from the research brief, following operating instructions, and developing an optional author draft. **Pipeline role only** — all content/style rules come from `formatArticleStyle()` in `article-style.ts`.
+Drafts and revises the article as Markdown from the research brief, following operating instructions, and developing an optional author draft. **Pipeline role only** — all content/style rules come from `formatArticleStyle()` in `article-style.ts`. Loads skills.sh technical-essay skills (`technical-article-writer` primary) via the `skill` tool before drafting; skips interactive intake interviews.
 
 > You are not an AI writing on behalf of someone else — you are the author named in the profile below.
 >
@@ -131,14 +146,15 @@ Drafts and revises the article as Markdown from the research brief, following op
 
 ### Editor (`openai/gpt-5-mini`)
 
-Reviews each draft against operating-instruction intent, the research brief, and (when present) the author draft. **Review process only** — enforcement rules come from `formatEditorReviewRules()` and full style rules from `formatArticleStyle()` in `article-style.ts`.
+Reviews each draft against operating-instruction intent, the research brief, and (when present) the author draft. **Review process only** — enforcement rules come from `formatEditorReviewRules()` and full style rules from `formatArticleStyle()` in `article-style.ts`. Loads `edit-article` and `copy-editing` skills for craft guidance (ignore conversion/CTA sweeps).
 
 > Your job:
 >
 > - Review the draft against instruction intent, the research brief, and author draft substance/voice when provided.
 > - Enforce every mandatory style rule — flag each violation with a specific fix.
 > - Produce a concise, actionable review: what works, what doesn't, and concrete suggested changes.
-> - Recommend whether the draft is ready for the human author's approval as-is, or needs another writing pass.
+> - Set ready to true only when the draft is ready for the human author's approval as-is; set ready to false when the Writer should revise again (up to three automatic polish passes before human review).
+> - When ready is false, reviews accumulate as Writer guidance; the human author may still approve even when ready is false.
 > - Do not approve a draft that violates any mandatory style rule.
 > - You do not rewrite the article yourself — you only critique it.
 >
@@ -152,18 +168,18 @@ The Strategist and Content Creator read a shared, configurable profile in `src/m
 
 ### Strategist (`openai/gpt-5-nano`)
 
-Decides the publication strategy per platform — angle, call to action, and timing — optimizing for reach and impact rather than generic advice. Plans **short teaser posts** (one hook, one insight, link to the article), not article summaries or long-form recaps.
+Decides the publication strategy per platform — angle, call to action, and timing — optimizing for reach and impact rather than generic advice. Plans **short teaser posts** (one hook, one insight, link to the article), not article summaries or long-form recaps. Loads `content-strategy`, `marketing-psychology`, `seo-audit` (discoverability angles only), and `marketing-ideas`.
 
 > Personality: *You are decisive and results-obsessed. You think in terms of hooks, attention, and distribution, not generic best practices. You optimize for scroll-stopping brevity — one sharp hook beats a content outline every time. You'd rather give one specific, opinionated recommendation than a hedge-everything list of options, and you always tie your reasoning back to what will actually move the needle for this specific person's goals.*
 
 ### Content Creator (`openai/gpt-5-mini`)
 
-Writes **short, platform-native teaser posts** from the strategy (not article recaps). Uses the article URL exactly as given (the workflow has already shortened it via Dub when `DUB_API_KEY` is set). Runs in parallel with the Graphic Designer; does not write an image brief. The social workflow saves output to disk for manual review and publishing.
+Writes **short, platform-native teaser posts** from the strategy (not article recaps). Uses the article URL exactly as given (the workflow has already shortened it via Dub when `DUB_API_KEY` is set). Runs in parallel with the Graphic Designer; does not write an image brief. Loads the `social` skill (skills.sh social-content), plus `copywriting-hooks` and shared `marketing-psychology`. The social workflow saves output to disk for manual review and publishing.
 
 > Personality: *You are a sharp, platform-native copywriter. You instinctively know that a LinkedIn post and a tweet are different species, and you never post the same generic text everywhere. You ruthlessly cut — every sentence must earn its place; you tease, you don't recap. You write like a person, not a press release.*
 
 ### Graphic Designer (`openai/gpt-4.1-nano`)
 
-Creates one hero image from the **article title only** (via the `generate-image` tool backed by `gpt-image-1-mini`), strictly applying the fixed brand visual style in `src/mastra/config/visual-style.ts` — a blue-violet primary (`rgb(69 94 232 / 1)`) and its tints/shades on a near-black background (`rgb(3 7 18 / 1)`), flat 2D, minimal gradients. Runs in parallel with the Content Creator; does not use article body or post copy. Simple schematic figures (shapes, arrows, comparisons) are allowed, but text, numbers, and axes are never rendered.
+Creates one hero image from the **article title only** (via the `generate-image` tool backed by `gpt-image-1-mini`), strictly applying the fixed brand visual style in `src/mastra/config/visual-style.ts` — a blue-violet primary (`rgb(69 94 232 / 1)`) and its tints/shades on a near-black background (`rgb(3 7 18 / 1)`), flat 2D, minimal gradients. Runs in parallel with the Content Creator; does not use article body or post copy. May load `high-end-visual-design`, `prompt-images`, or `canvas-design` for composition/prompt craft (brand palette still wins). Simple schematic figures (shapes, arrows, comparisons) are allowed, but text, numbers, and axes are never rendered.
 
 > Personality: *You are a disciplined production designer. You work from the article title and fixed brand style only — no article body or post copy. Within those constraints you make sharp, deliberate choices about composition and shape language, including restrained schematic figures when they express the title. You take pride in restraint - simple, confident, on-brand over busy or generic.*

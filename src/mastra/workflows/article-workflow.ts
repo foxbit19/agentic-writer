@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { extractUrls } from '../lib/extract-urls';
 import { stripDraftRevisionFromMarkdown } from '../lib/markdown';
 import { workflowAgentMemory } from '../lib/workflow-memory';
+import { appendRevisionGuidance, authorDraftBlock, buildWriterPrompt } from '../lib/writer-prompts';
 import { readArticle } from '../tools/read-article-tool';
 import {
   finalizeArticle,
@@ -14,10 +15,20 @@ import {
   setArticleStatus,
 } from '../lib/articles';
 
-const MAX_REVISION_ITERATIONS = 10;
+const MAX_EDITOR_PASSES = 3;
+const MAX_HUMAN_REVISION_CYCLES = 10;
 
-// Shared state threaded through the write -> review -> human-approval loop.
-// Input and output schemas of the loop must match so it can feed itself on each iteration.
+const editorReviewOutputSchema = z.object({
+  ready: z
+    .boolean()
+    .describe('True when the draft is ready for the human author to approve as-is'),
+  review: z
+    .string()
+    .describe('Concise, actionable editorial review for the Writer and human author'),
+});
+
+// Shared state threaded through editor polish and human-approval loops.
+// Input and output schemas of each loop must match so it can feed itself on each iteration.
 const draftStateSchema = z.object({
   articleId: z.string(),
   notes: z.string(),
@@ -25,22 +36,12 @@ const draftStateSchema = z.object({
   researchBrief: z.string(),
   draft: z.string(),
   editorReview: z.string(),
+  editorReady: z.boolean(),
+  editorPassCount: z.number(),
   guidanceNotes: z.string(),
   approved: z.boolean(),
   draftNumber: z.number(),
 });
-
-/**
- * Formats an optional author draft block for Writer/Editor prompts.
- *
- * @param authorDraft - Optional author-written prose from the workflow input
- * @returns A prompt section, or an empty string when no draft was provided
- */
-function authorDraftBlock(authorDraft: string | undefined): string {
-  const trimmed = authorDraft?.trim();
-  if (!trimmed) return '';
-  return `\n\nAuthor draft (develop this prose; it belongs in the article):\n${trimmed}`;
-}
 
 const researchTopicsStep = createStep({
   id: 'research-topics',
@@ -101,7 +102,7 @@ const researchTopicsStep = createStep({
 
     if (!response.text.trim()) {
       throw new Error(
-        'Researcher returned an empty brief (it likely exhausted its steps on failing web searches). Aborting so the Writer does not proceed without sources.',
+        'Researcher returned an empty brief (it likely exhausted its steps without writing a final answer, often after failing web searches). Aborting so the Writer does not proceed without sources.',
       );
     }
 
@@ -122,6 +123,10 @@ const writeDraftStep = createStep({
   inputSchema: draftStateSchema,
   outputSchema: draftStateSchema,
   execute: async ({ inputData, mastra, runId, resourceId }) => {
+    if (inputData.approved) {
+      return inputData;
+    }
+
     const { notes, authorDraft, researchBrief, draft, guidanceNotes } = inputData;
     const draftNumber = inputData.draftNumber + 1;
 
@@ -131,15 +136,18 @@ const writeDraftStep = createStep({
     }
 
     const isRevision = draft.trim().length > 0;
-    const previousDraft = isRevision ? stripDraftRevisionFromMarkdown(draft) : '';
-    const instructionsHeader =
-      'Author operating instructions (not article body — follow these; do not paste or lightly paraphrase them into the article)';
-    const prompt = isRevision
-      ? `${instructionsHeader}:\n${notes}${authorDraftBlock(authorDraft)}\n\nResearch brief:\n${researchBrief}\n\nPrevious draft:\n${previousDraft}\n\nRevision guidance (operating instructions from the editor and/or the human author — not article body):\n${guidanceNotes}\n\nRevise the draft to fully address this guidance and return the complete updated Markdown article.`
-      : `${instructionsHeader}:\n${notes}${authorDraftBlock(authorDraft)}\n\nResearch brief:\n${researchBrief}\n\nWrite the article as a complete Markdown document.${authorDraft?.trim() ? ' Develop and polish the author draft above; do not discard the author\'s wording unless the instructions say so.' : ''}`;
+    const prompt = buildWriterPrompt({
+      notes,
+      authorDraft,
+      researchBrief,
+      previousDraft: isRevision ? stripDraftRevisionFromMarkdown(draft) : undefined,
+      guidanceNotes,
+    });
 
     const response = await writer.generate(prompt, {
       memory: workflowAgentMemory(runId, 'writer-agent', resourceId),
+      // Skill tool + draft; leave room after loading technical-article-writer.
+      maxSteps: 12,
     });
 
     const draftMarkdown = response.text;
@@ -149,7 +157,6 @@ const writeDraftStep = createStep({
       ...inputData,
       articleId,
       draft: draftMarkdown,
-      editorReview: '',
       draftNumber,
     };
   },
@@ -169,15 +176,29 @@ const reviewDraftStep = createStep({
     }
 
     const response = await editor.generate(
-      `Author operating instructions (not article body — check intent; reject drafts that paste or lightly paraphrase these instructions):\n${notes}${authorDraftBlock(authorDraft)}\n\nResearch brief:\n${researchBrief}\n\nDraft to review:\n${draft}\n\nReview this draft and tell me whether it's ready for the author's approval.${authorDraft?.trim() ? ' When an author draft was provided, flag ignoring or inventing over it without cause.' : ''}`,
-      { memory: workflowAgentMemory(runId, 'editor-agent', resourceId) },
+      `Author operating instructions (not article body — check intent; reject drafts that paste or lightly paraphrase these instructions):\n${notes}${authorDraftBlock(authorDraft)}\n\nResearch brief:\n${researchBrief}\n\nDraft to review:\n${draft}\n\nReview this draft. Set ready to true only when the draft is ready for the human author's approval as-is. Set ready to false when the Writer should revise again before human review.${authorDraft?.trim() ? ' When an author draft was provided, flag ignoring or inventing over it without cause.' : ''}`,
+      {
+        memory: workflowAgentMemory(runId, 'editor-agent', resourceId),
+        maxSteps: 10,
+        structuredOutput: {
+          schema: editorReviewOutputSchema,
+        },
+      },
     );
 
-    await saveEditorReview(inputData.articleId, inputData.draftNumber, response.text);
+    if (!response.object) {
+      throw new Error('Editor returned no structured review output');
+    }
+
+    const { ready, review } = response.object;
+    await saveEditorReview(inputData.articleId, inputData.draftNumber, review);
 
     return {
       ...inputData,
-      editorReview: response.text,
+      editorReview: review,
+      editorReady: ready,
+      editorPassCount: inputData.editorPassCount + 1,
+      guidanceNotes: ready ? inputData.guidanceNotes : appendRevisionGuidance(inputData.guidanceNotes, review),
     };
   },
 });
@@ -197,6 +218,8 @@ const humanApprovalStep = createStep({
   suspendSchema: z.object({
     draft: z.string(),
     editorReview: z.string(),
+    editorReady: z.boolean(),
+    editorPassCount: z.number(),
     message: z.string(),
     articleId: z.string(),
     draftNumber: z.number(),
@@ -207,6 +230,8 @@ const humanApprovalStep = createStep({
       return await suspend({
         draft: inputData.draft,
         editorReview: inputData.editorReview,
+        editorReady: inputData.editorReady,
+        editorPassCount: inputData.editorPassCount,
         message: 'Review the draft and editor feedback, then approve or reject with additional notes.',
         articleId: inputData.articleId,
         draftNumber: inputData.draftNumber,
@@ -225,19 +250,27 @@ const humanApprovalStep = createStep({
     return {
       ...inputData,
       approved: false,
-      guidanceNotes: resumeData.notes,
+      guidanceNotes: appendRevisionGuidance(inputData.guidanceNotes, resumeData.notes),
     };
   },
 });
 
-const draftReviewWorkflow = createWorkflow({
-  id: 'draft-review-workflow',
+const editorPolishWorkflow = createWorkflow({
+  id: 'editor-polish-workflow',
   inputSchema: draftStateSchema,
   outputSchema: draftStateSchema,
 })
   .then(writeDraftStep)
   .then(reviewDraftStep)
+  .commit();
+
+const humanRevisionCycleWorkflow = createWorkflow({
+  id: 'human-revision-cycle-workflow',
+  inputSchema: draftStateSchema,
+  outputSchema: draftStateSchema,
+})
   .then(humanApprovalStep)
+  .then(writeDraftStep)
   .commit();
 
 const finalizeArticleStep = createStep({
@@ -297,14 +330,17 @@ export const articleWorkflow = createWorkflow({
     researchBrief: inputData.researchBrief,
     draft: '',
     editorReview: '',
+    editorReady: false,
+    editorPassCount: 0,
     guidanceNotes: '',
     approved: false,
     draftNumber: 0,
   }))
-  .dountil(draftReviewWorkflow, async ({ inputData, iterationCount }) => {
-    // Stop on approval, or finalize the latest draft when the revision cap is hit
-    // instead of failing the whole run and discarding work.
-    return inputData.approved === true || iterationCount >= MAX_REVISION_ITERATIONS;
+  .dountil(editorPolishWorkflow, async ({ inputData, iterationCount }) => {
+    return inputData.editorReady === true || iterationCount >= MAX_EDITOR_PASSES;
+  })
+  .dountil(humanRevisionCycleWorkflow, async ({ inputData, iterationCount }) => {
+    return inputData.approved === true || iterationCount >= MAX_HUMAN_REVISION_CYCLES;
   })
   .then(finalizeArticleStep)
   .commit();

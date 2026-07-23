@@ -16,16 +16,19 @@ The `articleWorkflow` turns author operating instructions (`notes`) and an optio
 ```mermaid
 flowchart TD
     input["Input: notes + optional authorDraft"] --> research["Research topics (Researcher)"]
-    research --> draftLoop
+    research --> editorPolish
 
-    subgraph draftLoop ["Draft review loop (until approved)"]
+    subgraph editorPolish ["Editor polish loop (up to 3 passes)"]
         write["Write draft (Writer)"]
         review["Review draft (Editor)"]
-        approve["Human approval (suspend)"]
-        write --> review --> approve
-        approve -->|"rejected + guidance notes"| write
+        write --> review
+        review -->|"not ready"| write
     end
 
+    editorPolish --> approve["Human approval (suspend)"]
+    approve -->|"rejected + guidance notes"| humanWrite["Write once (Writer, no Editor)"]
+    humanWrite --> approve
+    approve --> finalize["Finalize"]
     finalize --> output["Save workspace to data/articles/"]
     output --> result["Output: markdown, articleId, title"]
 ```
@@ -33,10 +36,10 @@ flowchart TD
 ### Steps
 
 1. **Research** — if the operating instructions contain URLs, the workflow fetches each page and the Researcher summarizes only that material (no web search). Otherwise the Researcher extracts topics from the instructions and researches them online (including social media/forums). Notes are treated as instructions, not article body.
-2. **Write** — the Writer drafts the article as Markdown from the research brief, following the operating instructions. When `authorDraft` is provided, that prose is the starting point to develop.
-3. **Review** — the Editor reviews the draft against instruction intent, research, and (when present) the author draft.
-4. **Approve** — the workflow suspends for human approval; the human approves or rejects with additional operating instructions.
-5. Steps 2–4 repeat, feeding the editor's review and the human's guidance back to the Writer, until the human approves — or until 10 revision iterations, in which case the latest draft is finalized with `completionReason: "max_iterations_reached"` so work is not discarded.
+2. **Editor polish** — the Writer drafts (or revises) the article; the Editor returns structured `{ ready, review }`. The loop repeats until `ready === true` or three Writer→Editor passes complete. Editor reviews accumulate as revision guidance for the Writer. When the cap is hit with `ready: false`, the workflow still proceeds to human review with the latest draft and last editor review.
+3. **Approve** — the workflow suspends for human approval; the human approves or rejects with additional operating instructions. Human approval always finalizes, even when the Editor marked the draft not ready.
+4. **Human revision** — on reject, the Writer revises once from human notes plus accumulated editor reviews (human notes win on conflict). The Editor does not re-check; suspend payload keeps the last editor review and pass metadata as stale context.
+5. Steps 3–4 repeat until the human approves — or until 10 human revision cycles, in which case the latest draft is finalized with `completionReason: "max_iterations_reached"` so work is not discarded.
 6. The approved draft is saved as `approved.md` inside a per-run article folder under `data/articles/`, with numbered drafts and editor reviews preserved in `drafts/`. Resume suspended runs in Studio to continue reviewing an in-progress article later.
 
 ### Article workspace
@@ -66,7 +69,7 @@ When instructions include source URLs, each URL is fetched with SSRF guards (htt
 
 ### Agents
 
-Researcher → Writer → Editor (looping until human approval or the revision cap).
+Researcher → Writer ↔ Editor (automatic polish, up to 3 passes) → human approval loop (Writer-only on reject, up to 10 cycles).
 
 ## Social media workflow
 

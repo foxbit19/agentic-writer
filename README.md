@@ -70,10 +70,10 @@ Six specialized agents power the two workflows. Each agent's tone and personalit
 | Agent | Model | Description |
 |-------|-------|-------------|
 | Researcher | `deepseek/deepseek-v4-flash` | Extracts topics from operating instructions; when instructions include URLs, fetches those sources only; otherwise searches the web. Produces a research brief for the Writer. |
-| Writer | `openai/gpt-5` | Drafts and revises the article from the research brief and instructions; develops an optional author draft. |
-| Editor | `openai/gpt-5-mini` | Reviews each draft against instruction intent, research, and optional author draft; recommends approval or another writing pass. |
+| Writer | `openai/gpt-5` | Drafts and revises the article from the research brief and instructions; develops an optional author draft. Loads technical-essay skills from skills.sh. |
+| Editor | `openai/gpt-5-mini` | Reviews each draft against instruction intent, research, and optional author draft; returns structured `{ ready, review }` for automatic polish (up to 3 passes) before human approval. Loads edit-article / copy-editing skills. |
 | Strategist | `openai/gpt-5-nano` | Decides per-platform publication strategy — hook, call to action, and timing — for a social campaign. |
-| Content Creator | `openai/gpt-5-mini` | Writes platform-native posts (runs in parallel with image generation). |
+| Content Creator | `openai/gpt-5-mini` | Writes platform-native posts (runs in parallel with image generation); loads social / hook skills. |
 | Graphic Designer | `openai/gpt-4.1-nano` | Creates one on-brand hero image from the article title only (simple schematic figures allowed; no text). |
 
 See [docs/agents.md](docs/agents.md) for models, tools, full instructions, and personality details.

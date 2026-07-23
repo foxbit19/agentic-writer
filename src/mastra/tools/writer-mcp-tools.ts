@@ -36,6 +36,8 @@ const suspendPayloadSchema = z
   .object({
     draft: z.string().optional(),
     editorReview: z.string().optional(),
+    editorReady: z.boolean().optional(),
+    editorPassCount: z.number().optional(),
     message: z.string().optional(),
     articleId: z.string().optional(),
     draftNumber: z.number().optional(),
@@ -121,7 +123,7 @@ function summarizeSocialRun(result: WorkflowRunResult, runId: string) {
 export const startArticleWorkflowTool = createTool({
   id: 'start_article_workflow',
   description:
-    'Start the article workflow from author operating instructions (notes) and an optional author draft. Blocks until the first human-approval suspend (after research, write, and editor review) or until the run completes. Can take several minutes.',
+    'Start the article workflow from author operating instructions (notes) and an optional author draft. Blocks until the first human-approval suspend (after research and up to three Writer–Editor polish passes) or until the run completes. Can take several minutes.',
   inputSchema: z.object({
     notes: z
       .string()
@@ -313,7 +315,7 @@ export const approveDraftTool = createTool({
 export const rejectDraftTool = createTool({
   id: 'reject_draft',
   description:
-    'Reject the current draft with guidance notes. Resumes the suspended article workflow so the Writer revises. Blocks until the next approval suspend or completion.',
+    'Reject the current draft with guidance notes. Resumes the suspended article workflow so the Writer revises once (Editor is skipped). Blocks until the next approval suspend or completion.',
   inputSchema: z.object({
     articleId: articleIdSchema,
     notes: z.string().min(1).describe('Guidance for the Writer on what to change'),
